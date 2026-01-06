@@ -1,0 +1,30 @@
+/* Buttons */
+button {
+	background-color: #E6E6E6;
+	border: none;
+	border-radius: 1em;
+	padding-block: 0.6em;
+	padding-inline: 2em;
+	font-weight: 600;
+
+	&:hover {
+		background-color: #DCDCDC;
+		cursor: pointer;
+	}
+	&:active {
+		background-color: #BEBEBE;
+	}
+
+
+	&.primary {
+		background-color: #3584E4;
+		color: #fff;
+
+		&:hover {
+		    background-color: #2B6CB0;
+		}
+		&:active {
+		    background-color: #2461A9;
+		}
+	}
+}

@@ -1,0 +1,45 @@
+/* Input Search */
+input[type="search"] {
+  background-color: #E6E6E6;
+  padding-inline: 0.6em;
+  padding-block: 0.4em;
+  border-radius: 0.5em;
+  border: 0.2em solid #E6E6E6;
+  outline: none;
+
+  &:active, &:focus {
+    outline: none;
+    box-shadow: none;
+    border: 0.2em solid #81ABDF;
+  }
+
+  &::placeholder {
+    font-weight: 500;
+    color: #858585;
+  }
+}
+
+select {
+  display: block;
+}
+
+/* Input Text */
+input[type="text"], input[type="number"], input[type="date"], input[type="password"], select {
+  background-color: #E6E6E6;
+  padding-inline: 0.6em;
+  padding-block: 0.4em;
+  border-radius: 0.5em;
+  border: 0.2em solid #E6E6E6;
+  outline: none;
+
+  &:active, &:focus {
+    outline: none;
+    box-shadow: none;
+    border: 0.2em solid #81ABDF;
+  }
+
+  &::placeholder {
+    font-weight: 500;
+    color: #858585;
+  }
+}

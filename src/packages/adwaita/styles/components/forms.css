@@ -1,0 +1,68 @@
+
+
+form {
+    width: 100%;
+
+    &.stack {
+        display: flex;
+        flex-direction: column;
+
+        > p {
+            padding: 0.5em;
+            display: flex;
+            flex-direction: row;
+            gap: 0.5em;
+            font-weight: 400;
+            font-size: 0.9em;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        > label {
+            padding: 0.5em;
+            display: flex;
+            flex-direction: row;
+            gap: 0.5em;
+            font-weight: 400;
+            font-size: 0.9em;
+            justify-content: space-between;
+            align-items: center;
+
+            border-bottom: 0.1em solid #F0F0F0;
+
+            &::before {
+                content: attr(data-label);
+                display: inline-block;
+                width: 120px;
+                font-weight: 500;
+                color: #444;
+            }
+
+            > input, > select {
+                flex-grow: 1;
+                flex-shrink: 0;
+            }
+
+            > button {
+                flex-grow: 0;
+                flex-shrink: 0;
+            }
+
+            &:last-child{
+                border-bottom: none;
+            }
+        }
+    }
+
+    &.wide {
+	    > label, p {
+			&::before {
+		        content: attr(data-label);
+		        display: inline-block;
+		        width: 0;
+		        font-weight: 500;
+		        color: #444;
+		    }
+	    }
+    }
+}

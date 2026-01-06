@@ -1,0 +1,40 @@
+sup.badge {
+    padding-inline: 0.6em;
+    padding-block: 0.2em;
+    border-radius: 0.4em;
+    vertical-align: baseline;
+    font-size: inherit;
+    background-color: #E64F3D;
+    color: white;
+    font-size: 0.8em;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+
+sup.badge.info {
+    background-color: #2D9CDB; /* blue */
+    color: white;
+}
+
+sup.badge.warning {
+    background-color: #F2994A; /* yellow */
+    color: white;
+}
+
+sup.badge.success {
+    background-color: #27AE60; /* green */
+    color: white;
+}
+
+sup.badge.error {
+    background-color: #EB5757; /* red */
+    color: white;
+}
+
+sup.badge.default {
+    background-color: #BDBDBD; /* grey */
+    color: black;
+}

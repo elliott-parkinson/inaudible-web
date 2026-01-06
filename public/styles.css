@@ -1,0 +1,310 @@
+
+
+html {
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  container-type: size;
+  container-name: layout;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family:Verdana, Geneva, Tahoma, sans-serif;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+
+ol.books {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: 1em;
+  padding: 0;
+  justify-content: center;
+
+  > li {
+    width: 12em;
+    max-width: calc(50% - 0.5em);
+    aspect-ratio: 1/1;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 1em;
+    background-color: #E6E6E6;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  }
+}
+
+ol.authors {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: 1em;
+  padding: 0;
+  justify-content: center;
+
+  > li {
+    width: 10em;
+    max-width: calc(50% - 0.5em);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: white;
+    padding: 1em;
+    border-radius: 0.8em;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    gap: 1em;
+    box-sizing: border-box;
+  }
+}
+
+figure.author {
+  width: 100%;
+  justify-content: space-between;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+
+  &:hover {
+    cursor: pointer;
+    opacity: 0.8;
+  }
+
+  > picture {
+    width: 100%;
+    aspect-ratio: 1/1;
+    display: flex;
+
+    > img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      border: none;
+      outline: none;
+      background-color: #E6E6E6;
+    }
+  }
+
+  figcaption {
+    margin-top: 1em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  span {
+    font-size: 0.8em;
+    text-align: center;
+  }
+}
+
+
+
+ol.series {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24em, 1fr));
+  gap: 1em;
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+  box-sizing: border-box;
+}
+
+ol.series li {
+  background-color: #f9f9f9;
+  border-radius: 1em;
+  padding: 0rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease;
+  overflow-x: hidden;
+  width: 24em;
+
+  &:hover {
+    cursor: pointer;
+    opacity: 0.8;
+  }
+}
+
+figure.series {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0rem;
+  overflow: hidden;
+  margin: 0;
+  width: 100%;
+  background-color: #e0e0e0;
+  max-height: 80px;
+  position: relative;
+}
+
+figure.series > img {
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: inline-block;
+  z-index: 0;
+}
+
+figure.series picture {
+  max-height: 80px;
+  margin: 0;
+  padding: 0;
+  z-index: 1;
+}
+
+.series picture > img {
+  max-height: 80px;
+  height: auto;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+.series progress {
+  width: 100%;
+  height: 0.2em;
+  margin-inline: 1em;
+  appearance: none;
+  border: none;
+  border-radius: 0;
+  background-color:#e0e0e0;
+}
+
+.series progress::-webkit-progress-bar {
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.series progress::-webkit-progress-value {
+  background-color: #4a90e2;
+  border-radius: 4px;
+}
+
+.series span:not(.progress) {
+  display: block;
+  text-align: center;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.series .total {
+  font-size: 0.85rem;
+  color: #777;
+}
+
+picture, img {
+  max-width: 100%;
+}
+
+
+picture.book-picture {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0rem;
+  overflow: hidden;
+  margin: 0;
+  width: 100%;
+  background-color: #e0e0e0;
+  position: relative;
+
+  > img[alt="Background"] {
+    background-size: cover;
+    background-position: center;
+    filter: blur(10px);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: inline-block;
+    z-index: 0;
+  }
+
+  > img:not([alt="Background"]) {
+    max-height: 15em;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+  }
+}
+
+
+section.book-details {
+  justify-content: center;
+  align-items: center;
+
+  > h2 {
+    margin: 0;
+    padding: 0;
+  }
+
+  > h3 {
+    margin: 0;
+    margin-top: -0.5em;
+    padding: 0;
+    color: #424242;
+  }
+
+  > span, time {
+    color: #424242;
+    font-size: 0.9em;
+    text-align: center;
+  }
+}
+
+h4 {
+  > a {
+    color: #d57700;
+    text-decoration: none;
+
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
+
+adw-header {
+  > meter {
+    width: 100%;
+    height: 0.2em;
+    border-radius: 0.1em;
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    margin-top: -0.6em;
+    margin-inline: -0.6em;
+
+    &[value="0"], &:not([value]), &[value=""] {
+      display: none;
+    }
+  }
+}
