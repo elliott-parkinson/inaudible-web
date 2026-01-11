@@ -1,0 +1,56 @@
+adw-view-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+adw-tab-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 0.2em;
+}
+
+adw-tab-bar adw-tab,
+adw-view-switcher adw-tab {
+  user-select: none;
+  background-color: transparent;
+  border: none;
+  border-radius: 1em;
+  padding-block: 0.6em;
+  padding-inline: 1.2em;
+  font-weight: 600;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9em;
+}
+
+adw-tab-bar adw-tab[selected],
+adw-view-switcher adw-tab[selected] {
+  background-color: #E6E6E6;
+}
+
+adw-tab-bar adw-tab:hover,
+adw-view-switcher adw-tab:hover {
+  background-color: #DCDCDC;
+  cursor: pointer;
+}
+
+adw-tab-bar adw-tab:active,
+adw-view-switcher adw-tab:active {
+  background-color: #BEBEBE;
+}
+
+adw-tab-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0.6em;
+}
+
+adw-tab-view > [role="tabpanel"] {
+  flex: 1;
+  min-height: 0;
+}

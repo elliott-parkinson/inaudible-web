@@ -3,6 +3,7 @@ import { container } from "../../../container";
 import { BookStore } from "../../inaudible.model/store/books-store";
 import type { AuthorStore } from "../../inaudible.model/store/authors-store";
 import type { SeriesStore } from "../../inaudible.model/store/series-store";
+import type { ProgressStore } from "../../inaudible.model/store/progress-store";
 
 export interface Book {
     id: string,
@@ -13,6 +14,9 @@ export interface Book {
     duration: number,
     genres: string[],
     published: string,
+    progress?: number,
+    currentTime?: number,
+    resumeTime?: number,
 
     narrators: string[],
 
@@ -23,6 +27,8 @@ export interface Book {
             id: string,
             name: string,
             pictureUrl: string,
+            progress?: number,
+            currentTime?: number,
         }[]
     }[]
 
@@ -34,6 +40,8 @@ export interface Book {
             id: string,
             name: string,
             pictureUrl: string,
+            progress?: number,
+            currentTime?: number,
         }[]
     }[]
 }
@@ -44,6 +52,8 @@ export interface BookItem {
     ino?: string,
     name: string,
     pictureUrl: string,
+    progress?: number,
+    currentTime?: number,
 }
 
 export const latestBooks = () => {
@@ -57,13 +67,18 @@ export const latestBooks = () => {
         data.value = [];
 
         const store = container.get("inaudible.store.books") as BookStore;
+        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
+        const progressItems = await progressStore.getAll();
+        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
         let books = await store.getRecentlyAdded(8);
 
         data.value = books.map(book => ({
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`
+            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            progress: progressMap.get(book.id)?.progress ?? 0,
+            currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
 
         loading.value = false;
@@ -83,6 +98,9 @@ export const bookList = () => {
         data.value = [];
 
         const store = container.get("inaudible.store.books") as BookStore;
+        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
+        const progressItems = await progressStore.getAll();
+        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
         let books = await store.getAll();
         books = books.filter(book => book.meta.seriesName == "");
 
@@ -94,7 +112,9 @@ export const bookList = () => {
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`
+            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            progress: progressMap.get(book.id)?.progress ?? 0,
+            currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
 
         loading.value = false;
@@ -115,9 +135,13 @@ export const bookOne = () => {
         data.value = null;
 
         const store = container.get("inaudible.store.books") as BookStore;
+        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
         const seriesStore = container.get("inaudible.store.series") as SeriesStore;
         const authorStore = container.get("inaudible.store.authors") as AuthorStore;
         let book = await store.get(request.id);
+        const progress = await progressStore.getByLibraryItemId(book.id);
+        const progressItems = await progressStore.getAll();
+        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
 
 
         const series = [];
@@ -131,6 +155,8 @@ export const bookOne = () => {
                     id: book.id,
                     name: book.meta.title,
                     pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                    progress: progressMap.get(book.id)?.progress ?? 0,
+                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 }))
             });
         }
@@ -146,10 +172,16 @@ export const bookOne = () => {
                     id: book.id,
                     name: book.meta.title,
                     pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                    progress: progressMap.get(book.id)?.progress ?? 0,
+                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 })),
             })
         }
         loading.value = false;
+
+        const currentTime = progress?.currentTime ?? 0;
+        const progressTime = progress?.progress ? progress.progress * book.duration : 0;
+        const resumeTime = progressTime && Math.abs(progressTime - currentTime) > 120 ? progressTime : currentTime;
 
         data.value = {
             id: book.id,
@@ -157,6 +189,9 @@ export const bookOne = () => {
             name: book.meta.title,
             description: book.meta.description,
             duration: book.duration,
+            progress: progress?.progress ?? 0,
+            currentTime,
+            resumeTime,
             narrators: book.meta.narratorName.split(", "),
             published: book.meta.publishedYear !== "0" ? book.meta.publishedYear : null,
             genres: book.meta.genres,
