@@ -1,4 +1,4 @@
-import { AudiobookshelfApi, AudiobookshelfSocket } from "./packages/audiobookshelf.api/service";
+import { AudiobookshelfApi } from "./packages/audiobookshelf.api/service";
 import { Libraries } from "./packages/audiobookshelf.api/service/libraries";
 import { AudiobookshelfMeApi } from "./packages/audiobookshelf.api/service/me";
 import { AudiobookStore } from "./packages/inaudible.model/store";
@@ -7,7 +7,6 @@ import { BookStore } from "./packages/inaudible.model/store/books-store";
 import { ProgressStore } from "./packages/inaudible.model/store/progress-store";
 import { SeriesStore } from "./packages/inaudible.model/store/series-store";
 import { InaudibleService } from "./packages/inaudible.service";
-import { InaudibleMediaProgressService } from "./packages/inaudible.service/media-progress";
 
 export const container = new Map<string, object>;
 
@@ -22,8 +21,10 @@ export const init = async () => {
     container.set("audiobookshelf.api", api);
     container.set("audiobookshelf.api.libraries", new Libraries(api));
     container.set("audiobookshelf.api.me", new AudiobookshelfMeApi(api));
-    container.set("inaudible.store", store);
+    
     container.set("inaudible.service", service);
+
+    container.set("inaudible.store", store);
     container.set("inaudible.store.authors", new AuthorStore(store.database));
     container.set("inaudible.store.books", new BookStore(store.database));
     container.set("inaudible.store.series", new SeriesStore(store.database));

@@ -1,7 +1,6 @@
 import { EventBus } from "../../bus.events/event-bus";
 import type { Login } from "../interfaces/api/login-response";
 import type { User } from "../interfaces/model/user";
-export { AudiobookshelfSocket } from "./socket";
 
 interface Events {
 	login: (user: Login.Response.user) => void;
