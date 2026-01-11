@@ -1,6 +1,7 @@
 import { EventBus } from "../../bus.events/event-bus";
 import type { Login } from "../interfaces/api/login-response";
 import type { User } from "../interfaces/model/user";
+export { AudiobookshelfSocket } from "./socket";
 
 interface Events {
 	login: (user: Login.Response.user) => void;
@@ -34,6 +35,18 @@ export class AudiobookshelfApi {
 
     setBaseUrl(baseUrl: string) {
         this._baseUrl = baseUrl;
+    }
+
+    reloadTokens() {
+        this.loadTokens();
+    }
+
+    getBaseUrl(): string {
+        return this._baseUrl;
+    }
+
+    getAccessToken(): string | null {
+        return this.accessToken;
     }
 
     loggedIn(): boolean {
@@ -130,6 +143,44 @@ export class AudiobookshelfApi {
         this.events.emit("login", null);
 
         return data;
+    }
+
+    async authorize(): Promise<User> {
+        if (!this.accessToken) {
+            throw new Error("No access token available");
+        }
+
+        let response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${this.accessToken}`,
+            },
+        });
+
+        const shouldRefresh = response.status === 401 && this.refreshToken;
+        if (shouldRefresh) {
+            await this.refreshAccessToken();
+            response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${this.accessToken}`,
+                },
+            });
+        }
+
+        if (!response.ok) {
+            const error = await response.text();
+            if (response.status === 401) {
+                await this.logout();
+            }
+            throw new Error(`Authorize failed: ${response.status} ${error}`);
+        }
+
+        const data = await response.json();
+        if (data?.user) {
+            this.saveUser(data.user);
+        }
+        return data?.user ?? data;
     }
 
     async logout(full?: false): Promise<void> {
