@@ -1,5 +1,6 @@
 import { AudiobookshelfApi, AudiobookshelfSocket } from "./packages/audiobookshelf.api/service";
 import { Libraries } from "./packages/audiobookshelf.api/service/libraries";
+import { AudiobookshelfMeApi } from "./packages/audiobookshelf.api/service/me";
 import { AudiobookStore } from "./packages/inaudible.model/store";
 import { AuthorStore } from "./packages/inaudible.model/store/authors-store";
 import { BookStore } from "./packages/inaudible.model/store/books-store";
@@ -10,6 +11,8 @@ import { InaudibleMediaProgressService } from "./packages/inaudible.service/medi
 
 export const container = new Map<string, object>;
 
+
+
 export const init = async () => {
     const api = new AudiobookshelfApi("https://audible.hylia.network");
     const store = new AudiobookStore();
@@ -17,8 +20,8 @@ export const init = async () => {
     await store.init();
 
     container.set("audiobookshelf.api", api);
-    container.set("inaudible.api.libraries", new Libraries(api));
-    container.set("inaudible.api.socket", new AudiobookshelfSocket(api));
+    container.set("audiobookshelf.api.libraries", new Libraries(api));
+    container.set("audiobookshelf.api.me", new AudiobookshelfMeApi(api));
     container.set("inaudible.store", store);
     container.set("inaudible.service", service);
     container.set("inaudible.store.authors", new AuthorStore(store.database));

@@ -74,7 +74,7 @@ export class InaudibleSynchronizationService extends EventTarget {
 
     async synchronize(defaultLibrary: string) {
         const api = this._container.get("audiobookshelf.api") as AudiobookshelfApi;
-        const libraries = this._container.get("inaudible.api.libraries") as Libraries;
+        const libraries = this._container.get("audiobookshelf.api.libraries") as Libraries;
 
         const books = this._container.get("inaudible.store.books") as BookStore;
         const authors = this._container.get("inaudible.store.authors") as AuthorStore;
