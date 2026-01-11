@@ -83,8 +83,6 @@ export class InaudibleSynchronizationService extends EventTarget {
 
 
         const mylibrary = await libraries.mediaProgress({});
-		console.log('library', mylibrary);
-
         this._lastPercent = 0;
 
         const currentTime = Date.now();

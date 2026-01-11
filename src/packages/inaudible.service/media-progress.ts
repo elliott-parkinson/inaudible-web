@@ -1,3 +1,4 @@
+import type { AudiobookshelfMeApi } from "../audiobookshelf.api/service/me";
 import type { StoredProgress } from "../inaudible.model/interfaces/stored-progress";
 
 
@@ -9,23 +10,30 @@ export class InaudibleMediaProgressService extends EventTarget {
         this._container = container;
     }
 
+    private updateMediaProgress(data: StoredProgress) {
+
+    }
+
     async updateByLibraryItemId(libraryItemId: string) {
-        const progressStore = this._container.get("inaudible.progress.store") as any;
-        const socket = this._container.get("inaudible.api.socket") as any;
+        const progressStore = this._container.get("inaudible.store.progress") as any;
+        const meApi = this._container.get("audiobookshelf.api.me") as AudiobookshelfMeApi;
 
         const result = await progressStore.getByLibraryItemId(libraryItemId);
-
         this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: result ?? null }));
 
 
-        const onSocketProgress = (data: StoredProgress) => {
-            if (data.libraryItemId === libraryItemId) {
-                this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: data }));
-            }
+        const progress = await meApi.getMediaProgress({ id: libraryItemId });
+        if (progress && progress.progress) {
+            await progressStore.put({
+                libraryItemId: libraryItemId,
+                position: progress.progress,
+                duration: progress.duration,
+                updatedAt: Date.now(),
+            });
 
-            socket.off(socket._eventNames.mediaProgress, onSocketProgress);
+            this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: progress.progress }));
+        } else {
+            console.log("No progress data returned from API for library item ID:", libraryItemId);
         }
-
-        socket?.on(socket._eventNames.mediaProgress, onSocketProgress);
     }
 }

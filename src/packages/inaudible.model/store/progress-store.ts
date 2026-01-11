@@ -22,6 +22,14 @@ export class ProgressStore {
 		throw new Error('No progress store available');
 	}
 
+	async put(item: StoredProgress) {
+		const storeName = this.getStoreName();
+		const transaction = this._database.transaction(storeName, 'readwrite');
+		const store = transaction.objectStore(storeName);
+		await store.put(item);
+		await transaction.done;
+	}
+
 	async putMany(progressItems: StoredProgress[]) {
 		if (!progressItems?.length) {
 			return;
