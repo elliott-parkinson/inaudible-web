@@ -1,4 +1,6 @@
 import { container } from "../../../container";
+import type { InaudibleService } from "../../inaudible.service";
+import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
 
 class AudiobookshelfPlayerElement extends HTMLElement {
   audio: HTMLAudioElement;
@@ -9,6 +11,13 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   statusEl: HTMLDivElement;
   controller: AbortController | null;
   lastProgressSentAt: number;
+  #progressService: InaudibleMediaProgressService | null;
+  #progressSubscriptionTarget: EventTarget | null;
+  #progressEventName: string | null;
+  #pendingStartPosition: number | null;
+  #pendingProgressRatio: number | null;
+  #hasAppliedStartPosition: boolean;
+  #initialPositionLocked: boolean;
 
   constructor() {
     super();
@@ -28,6 +37,13 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.startPosition = 0;
     this.controller = null;
     this.lastProgressSentAt = 0;
+    this.#progressService = null;
+    this.#progressSubscriptionTarget = null;
+    this.#progressEventName = null;
+    this.#pendingStartPosition = null;
+    this.#pendingProgressRatio = null;
+    this.#hasAppliedStartPosition = false;
+    this.#initialPositionLocked = false;
   }
 
   async connectedCallback() {
@@ -35,6 +51,10 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.apiKey = this.getAttribute('api-key');
     this.baseUrl = this.getAttribute('base-url');
     this.startPosition = parseFloat(this.getAttribute('start-position')) || 0;
+    this.#initialPositionLocked = this.startPosition > 0;
+    if (this.#initialPositionLocked) {
+      this.#pendingStartPosition = this.startPosition;
+    }
 
     if (!this.mediaItemId || !this.apiKey || !this.baseUrl) {
       console.error('Missing media-item-id, api-key, or base-url');
@@ -42,14 +62,17 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       return;
     }
 
+    this.#ensureProgressService();
+    this.#updateProgressSubscription();
+    this.#requestProgressUpdate();
+
+    this.audio.addEventListener('loadedmetadata', () => {
+      this.#applyStartPosition();
+    }, { once: true });
+
     this.statusEl.textContent = 'Loading audio...';
     await this.startStream();
-
-    if (this.startPosition > 0) {
-      this.audio.addEventListener('loadedmetadata', () => {
-        this.audio.currentTime = this.startPosition;
-      }, { once: true });
-    }
+    this.#applyStartPosition();
 
     this.audio.addEventListener('timeupdate', () => {
       this.maybeSendProgress(false);
@@ -69,6 +92,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       this.controller.abort();
       this.controller = null;
     }
+    this.#teardownProgressSubscription();
   }
 
   async startStream() {
@@ -162,6 +186,92 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     return `${url}${separator}token=${encodeURIComponent(token)}`;
   }
 
+  #ensureProgressService() {
+    if (this.#progressService) {
+      return;
+    }
+    const service = container.get("inaudible.service") as InaudibleService | undefined;
+    this.#progressService = service?.progress ?? null;
+  }
+
+  #requestProgressUpdate() {
+    if (!this.mediaItemId || !this.#progressService) {
+      return;
+    }
+    void this.#progressService.updateByLibraryItemId(this.mediaItemId);
+  }
+
+  #updateProgressSubscription() {
+    this.#teardownProgressSubscription();
+    if (!this.mediaItemId || !this.#progressService) {
+      return;
+    }
+    const eventName = `${this.mediaItemId}-progress`;
+    this.#progressService.addEventListener(eventName, this.#onProgressEvent);
+    this.#progressSubscriptionTarget = this.#progressService;
+    this.#progressEventName = eventName;
+  }
+
+  #teardownProgressSubscription() {
+    if (this.#progressSubscriptionTarget && this.#progressEventName) {
+      this.#progressSubscriptionTarget.removeEventListener(this.#progressEventName, this.#onProgressEvent);
+    }
+    this.#progressSubscriptionTarget = null;
+    this.#progressEventName = null;
+  }
+
+  #onProgressEvent = (event: Event) => {
+    if (this.#initialPositionLocked || this.#hasAppliedStartPosition) {
+      return;
+    }
+    const detail = (event as CustomEvent).detail as unknown;
+    const progressData = this.#extractProgress(detail);
+    if (!progressData) {
+      return;
+    }
+    if (progressData.currentTime !== null) {
+      this.#pendingStartPosition = progressData.currentTime;
+      this.#pendingProgressRatio = null;
+    } else if (progressData.progressRatio !== null) {
+      this.#pendingProgressRatio = progressData.progressRatio;
+    }
+    this.#applyStartPosition();
+  };
+
+  #extractProgress(detail: unknown): { currentTime: number | null; progressRatio: number | null } | null {
+    if (typeof detail === 'number' && Number.isFinite(detail)) {
+      return detail <= 1 ? { currentTime: null, progressRatio: detail } : { currentTime: detail, progressRatio: null };
+    }
+    if (!detail || typeof detail !== 'object') {
+      return null;
+    }
+    const data = detail as { currentTime?: unknown; progress?: unknown };
+    if (typeof data.currentTime === 'number' && Number.isFinite(data.currentTime)) {
+      return { currentTime: data.currentTime, progressRatio: null };
+    }
+    if (typeof data.progress === 'number' && Number.isFinite(data.progress)) {
+      return data.progress <= 1
+        ? { currentTime: null, progressRatio: data.progress }
+        : { currentTime: data.progress, progressRatio: null };
+    }
+    return null;
+  }
+
+  #applyStartPosition() {
+    if (this.#hasAppliedStartPosition) {
+      return;
+    }
+    const duration = Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
+    let target = this.#pendingStartPosition ?? 0;
+    if (!target && this.#pendingProgressRatio !== null && duration > 0) {
+      target = duration * this.#pendingProgressRatio;
+    }
+    if (!target || target <= 0 || duration <= 0) {
+      return;
+    }
+    this.audio.currentTime = Math.min(target, duration);
+    this.#hasAppliedStartPosition = true;
+  }
 
   maybeSendProgress(force: boolean) {
 
@@ -173,8 +283,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     const currentTime = Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0;
     const progress = duration > 0 ? currentTime / duration : 0;
 
-    const mediaProgressService = container.get("inaudible.service.media-progress") as any;
-    mediaProgressService?.updateMediaProgressByLibraryItemId(this.mediaItemId!, progress * duration, duration);
+    if (this.mediaItemId && this.#progressService) {
+      void this.#progressService.updateMediaProgressByLibraryItemId(this.mediaItemId, currentTime, duration, progress);
+    }
 
     this.lastProgressSentAt = now;
   }
