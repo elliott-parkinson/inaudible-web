@@ -3,6 +3,7 @@ import { container } from "../../../container";
 import { BookStore } from "../../inaudible.model/store/books-store";
 import type { ProgressStore } from "../../inaudible.model/store/progress-store";
 import type { BookItem } from "./books";
+import { buildApiUrl } from "./api";
 
 
 export const latestBooks = () => {
@@ -29,7 +30,7 @@ export const latestBooks = () => {
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
             progress: progressMap.get(book.id)?.progress ?? 0,
             currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
@@ -40,7 +41,7 @@ export const latestBooks = () => {
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
             progress: progressMap.get(book.id)?.progress ?? 0,
             currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
@@ -58,7 +59,7 @@ export const latestBooks = () => {
                     id: book.id,
                     ino: book.ino,
                     name: book.meta.title,
-                    pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                    pictureUrl: buildApiUrl(`items/${book.id}/cover`),
                     progress: item.progress ?? 0,
                     currentTime: item.currentTime ?? 0,
                 } as BookItem;

@@ -13,6 +13,8 @@ import BookRoute from '../modules/book/route/content';
 import AuthorsRoute from '../modules/authors/route/content';
 import SeriesRoute from '../modules/series-list/route/content';
 import SingleSeriesRoute from '../modules/series/route/content';
+import StatsRoute from '../modules/stats/route/content';
+import ProfileRoute from '../modules/profile/route/content';
 
 export const MainContent = (props: any ) => {
     return <>
@@ -25,6 +27,8 @@ export const MainContent = (props: any ) => {
           <Route path='/authors' component={AuthorsRoute} />
           <Route path='/series' component={SeriesRoute} />
           <Route path='/series/:id' component={SingleSeriesRoute} />
+          <Route path='/stats' component={StatsRoute} />
+          <Route path='/profile' component={ProfileRoute} />
           {/*<Route default component={NotFound} />*/}
         </Router>
       </ErrorBoundary>

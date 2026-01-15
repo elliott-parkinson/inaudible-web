@@ -13,7 +13,8 @@ export const container = new Map<string, object>;
 
 
 export const init = async () => {
-    const api = new AudiobookshelfApi("https://audible.hylia.network");
+    const apiBaseUrl = localStorage.getItem("abs_api_baseUrl") ?? "";
+    const api = new AudiobookshelfApi(apiBaseUrl);
     const store = new AudiobookStore();
     const service = new InaudibleService(container);
     await store.init();

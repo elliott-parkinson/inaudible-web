@@ -4,6 +4,7 @@ import type { SeriesStore } from "src/packages/inaudible.model/store/series-stor
 import type { AuthorStore } from "src/packages/inaudible.model/store/authors-store";
 import type { BookStore } from "src/packages/inaudible.model/store/books-store";
 import type { ProgressStore } from "src/packages/inaudible.model/store/progress-store";
+import { buildApiUrl } from "./api";
 
 
 export interface SeriesItem {
@@ -135,7 +136,7 @@ export const seriesOne = () => {
                         books: (await bookStore.getMoreByAuthor(author.id, 6)).map(book => ({
                             id: book.id,
                             name: book.meta.title,
-                            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
                         })),
                     });
                 }

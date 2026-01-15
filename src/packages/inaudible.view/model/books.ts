@@ -4,6 +4,7 @@ import { BookStore } from "../../inaudible.model/store/books-store";
 import type { AuthorStore } from "../../inaudible.model/store/authors-store";
 import type { SeriesStore } from "../../inaudible.model/store/series-store";
 import type { ProgressStore } from "../../inaudible.model/store/progress-store";
+import { buildApiUrl } from "./api";
 
 export interface Book {
     id: string,
@@ -76,7 +77,7 @@ export const latestBooks = () => {
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
             progress: progressMap.get(book.id)?.progress ?? 0,
             currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
@@ -112,7 +113,7 @@ export const bookList = () => {
             id: book.id,
             ino: book.ino,
             name: book.meta.title,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
             progress: progressMap.get(book.id)?.progress ?? 0,
             currentTime: progressMap.get(book.id)?.currentTime ?? 0,
         }));
@@ -154,7 +155,7 @@ export const bookOne = () => {
                 books: seriesBooks.map(book => ({
                     id: book.id,
                     name: book.meta.title,
-                    pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                    pictureUrl: buildApiUrl(`items/${book.id}/cover`),
                     progress: progressMap.get(book.id)?.progress ?? 0,
                     currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 }))
@@ -167,11 +168,11 @@ export const bookOne = () => {
             authors.push({
                 id: author.id,
                 name: author.name,
-                pictureUrl: `https://audible.hylia.network/audiobookshelf/api/authors/${author.id}/image`,
+                pictureUrl: buildApiUrl(`authors/${author.id}/image`),
                 books: (await store.getMoreByAuthor(author.id, 6)).map(book => ({
                     id: book.id,
                     name: book.meta.title,
-                    pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                    pictureUrl: buildApiUrl(`items/${book.id}/cover`),
                     progress: progressMap.get(book.id)?.progress ?? 0,
                     currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 })),
@@ -195,7 +196,7 @@ export const bookOne = () => {
             narrators: book.meta.narratorName.split(", "),
             published: book.meta.publishedYear !== "0" ? book.meta.publishedYear : null,
             genres: book.meta.genres,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
             authors,
 
             series,

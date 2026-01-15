@@ -5,6 +5,7 @@ import type { AuthorStore } from "src/packages/inaudible.model/store/authors-sto
 import type { SeriesItem } from "./series";
 import type { SeriesStore } from "src/packages/inaudible.model/store/series-store";
 import type { ProgressStore } from "src/packages/inaudible.model/store/progress-store";
+import { buildApiUrl } from "./api";
 
 
 export interface AuthorItem {
@@ -36,7 +37,7 @@ export const authorList = () => {
             id: author.id,
             numBooks: author.numBooks,
             name: author.name,
-            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/authors/${author.id}/image`,
+            pictureUrl: buildApiUrl(`authors/${author.id}/image`),
         }));
     };
 
