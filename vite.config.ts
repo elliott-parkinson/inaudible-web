@@ -1,15 +1,22 @@
-import { defineConfig } from 'vite';
-import preact from '@preact/preset-vite';
-
+import { defineConfig } from "vite";
 import fs from 'node:fs';
 
-export default defineConfig({
-  plugins: [preact()],
-  server: {
-    https: {
-      key: fs.readFileSync('./localhost-key.pem'),
-      cert: fs.readFileSync('./localhost-cert.pem'),
+export default defineConfig(({ command, mode }) => {
+  const isDev = command === "serve";
+
+  return {
+    server: {
+      host: "0.0.0.0",
+      port: 5173,
+      https: {
+        key: fs.readFileSync('./localhost-key.pem'),
+        cert: fs.readFileSync('./localhost-cert.pem'),
+      },   // HTTPS only in dev
     },
-    port: 3000, // or any port you prefer
-  },
+    preview: {
+      host: "0.0.0.0",
+      port: 5173,
+      https: false,   // Always HTTP in prod
+    }
+  };
 });

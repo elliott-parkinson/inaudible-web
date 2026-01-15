@@ -5,4 +5,4 @@ if [ -d .git ]; then
   git pull --rebase
 fi
 
-npm run prod
+npm run preview
