@@ -11,6 +11,8 @@ import arrowsRotate from "./icons/arrows-rotate.svg";
 import { BottomNav } from './components/bottom-nav';
 import type { AudiobookshelfApi } from '../audiobookshelf.api/service';
 import { useLayoutEffect } from 'preact/hooks';
+import type { MediaProgress } from '../audiobookshelf.api/interfaces/model/media-progress';
+import type { ProgressStore } from '../inaudible.model/store/progress-store';
 
 const loading = signal<boolean>(false);
 const total = signal<number>(100);
@@ -48,32 +50,80 @@ const synchronize = async () => {
 
 const auth = {
 	loggedIn: signal(false),
+	checking: signal(true),
 };
 
 
 const controller = () => {
  	const api = container.get("audiobookshelf.api") as AudiobookshelfApi;
-
-	auth.loggedIn.value = api.loggedIn();
+    const progressStore = container.get("inaudible.store.progress") as ProgressStore;
 
 	api.events.on("login", (data) => {
 		auth.loggedIn.value = true;
+		auth.checking.value = false;
 		console.log("login", data);
 	});
 
 	api.events.on("logout", () => {
 		auth.loggedIn.value = false;
+		auth.checking.value = false;
 		console.log("logout");
 	});
 
+    const storeProgress = async (items: MediaProgress[] | undefined) => {
+        if (!items?.length) {
+            return;
+        }
+        await progressStore.putMany(items.map(item => ({
+            id: item.id,
+            userId: item.userId,
+            libraryItemId: item.libraryItemId,
+            mediaItemId: item.mediaItemId,
+            mediaItemType: item.mediaItemType,
+            duration: item.duration,
+            progress: item.progress,
+            currentTime: item.currentTime,
+            isFinished: item.isFinished,
+            lastUpdate: item.lastUpdate,
+            startedAt: item.startedAt,
+        })));
+    };
+
     useLayoutEffect(() => {
-	    const dialog = document.getElementById('login-dialog') as HTMLDialogElement;
-	    dialog.showModal();
+        api.reloadTokens();
+        if (!api.getAccessToken()) {
+            auth.loggedIn.value = false;
+            auth.checking.value = false;
+            return;
+        }
+        auth.loggedIn.value = true;
+        const verify = async () => {
+            try {
+                const user = await api.authorize();
+                auth.loggedIn.value = true;
+                await storeProgress(user?.mediaProgress);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (message.includes("401")) {
+                    auth.loggedIn.value = false;
+                }
+            } finally {
+                auth.checking.value = false;
+            }
+        };
+        verify();
     }, []);
 
     useSignalEffect(() => {
     	console.log("aut->loggedIn", auth.loggedIn.value);
 		const dialog = document.getElementById('login-dialog') as HTMLDialogElement;
+		if (!dialog) {
+			return;
+		}
+		if (auth.checking.value) {
+			dialog.close();
+			return;
+		}
 		if (auth.loggedIn.value) {
 			dialog.close();
 		} else {
@@ -90,8 +140,9 @@ const controller = () => {
 			const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
 			const result = await api.login(username, password, server);
-			console.log('result', result);
+			await storeProgress(result?.user?.mediaProgress);
 			auth.loggedIn.value = true;
+			auth.checking.value = false;
 		}
 	};
 }

@@ -53,8 +53,8 @@ export default () => {
             { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
 
                 {data.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-						<inaudible-audiobook src={book.pictureUrl} title={book.name} />
-					</li>)}
+                    <inaudible-audiobook src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
+                </li>)}
             </ol> }
         </adw-clamp>
     </>;

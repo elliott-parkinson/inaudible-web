@@ -1,0 +1,47 @@
+adw-preferences-group {
+  background: white;
+  padding: 1em;
+  border-radius: 0.8em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+adw-action-row,
+adw-entry-row,
+adw-switch-row,
+adw-expander-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.6em 0.8em;
+  border-bottom: 0.1em solid #F0F0F0;
+}
+
+adw-action-row:last-child,
+adw-entry-row:last-child,
+adw-switch-row:last-child,
+adw-expander-row:last-child {
+  border-bottom: none;
+}
+
+adw-entry-row > input,
+adw-entry-row > select,
+adw-switch-row > input {
+  flex: 1;
+  min-width: 0;
+}
+
+adw-expander-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+adw-expander-row > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}

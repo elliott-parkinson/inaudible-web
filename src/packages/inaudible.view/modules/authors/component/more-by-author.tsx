@@ -22,7 +22,7 @@ export const MoreByAuthor = ({ authors }) => {
             <h4>More from <a href={`/authors/${author.id}`}>{author.name}</a></h4>
             <ol class="books">
                 {author.books.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-					<inaudible-audiobook src={book.pictureUrl} title={book.name} position={book.position} />
+					<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} position={book.position} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
 				</li>)}
             </ol>
         </>)}

@@ -29,7 +29,7 @@ ol.books {
   list-style: none;
   gap: 1em;
   padding: 0;
-  justify-content: center;
+  justify-content: start;
 
   > li {
     width: 12em;

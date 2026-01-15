@@ -1,0 +1,75 @@
+adw-clamp {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--adw-clamp-max-width,99rem);
+  margin-inline: auto;
+  padding-inline: 1em;
+}
+
+adw-toolbar-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: 0.6em;
+}
+
+adw-navigation-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+adw-navigation-split-view {
+  display: flex;
+  flex-direction: row;
+  min-height: 100%;
+  gap: 1em;
+}
+
+adw-navigation-split-view[collapsed] {
+  flex-direction: column;
+}
+
+adw-flap {
+  display: flex;
+  min-height: 100%;
+}
+
+adw-flap[collapsed] {
+  flex-direction: column;
+}
+
+adw-flap > [slot="flap"],
+adw-flap > .flap,
+adw-flap > [data-adw-flap="flap"] {
+  width: 18rem;
+  flex-shrink: 0;
+  background-color: #F5F5F5;
+  border-right: 1px solid #E6E6E6;
+}
+
+adw-flap[collapsed] > [slot="flap"],
+adw-flap[collapsed] > .flap,
+adw-flap[collapsed] > [data-adw-flap="flap"] {
+  width: 100%;
+  border-right: none;
+  border-bottom: 1px solid #E6E6E6;
+}
+
+adw-flap > [slot="content"],
+adw-flap > .content,
+adw-flap > [data-adw-flap="content"] {
+  flex: 1;
+  min-width: 0;
+}
+
+adw-leaflet {
+  display: flex;
+  flex-direction: row;
+  min-height: 100%;
+  gap: 1em;
+}
+
+adw-leaflet[folded] {
+  flex-direction: column;
+}

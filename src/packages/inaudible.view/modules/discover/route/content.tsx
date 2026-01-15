@@ -12,7 +12,7 @@ const viewModel = {
 const controller = () => {
     const route = useRoute();
     const location = useLocation();
-    const { discover, latest, loading, error, load } = model.discover.discover;
+    const { discover, latest, continueListening, loading, error, load } = model.discover.discover;
 
     useLayoutEffect(() => {
         load({ page: 0, limit: 10 });
@@ -21,7 +21,7 @@ const controller = () => {
     return {
         route,
         location,
-        discover, latest, error, loading, load,
+        discover, continueListening, latest, error, loading, load,
     }
 }
 
@@ -29,21 +29,33 @@ export default () => {
     const {
         route,
         location,
-        discover, latest, error, loading,
+        discover, latest, continueListening, error, loading,
     } = controller();
+
+    const continueListeningSafe = continueListening ?? signal([]);
 
     return <>
         <adw-clamp>
+            {continueListeningSafe.value.length > 0 && (
+                <>
+                    <h2>Continue Listening</h2>
+                    { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
+                        {continueListeningSafe.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
+							<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
+						</li>)}
+                    </ol> }
+                </>
+            )}
 	        <h2>Discover</h2>
 	        { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
 	            {discover.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-							<inaudible-audiobook src={book.pictureUrl} title={book.name} />
+							<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
 						</li>)}
 	        </ol> }
             <h2>What's New</h2>
             { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
                 {latest.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-						<inaudible-audiobook src={book.pictureUrl} title={book.name} />
+						<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
 					</li>)}
             </ol> }
         </adw-clamp>

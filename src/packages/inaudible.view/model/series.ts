@@ -3,6 +3,8 @@ import { container } from "../../../container";
 import type { SeriesStore } from "src/packages/inaudible.model/store/series-store";
 import type { AuthorStore } from "src/packages/inaudible.model/store/authors-store";
 import type { BookStore } from "src/packages/inaudible.model/store/books-store";
+import type { ProgressStore } from "src/packages/inaudible.model/store/progress-store";
+import { buildApiUrl } from "./api";
 
 
 export interface SeriesItem {
@@ -29,6 +31,8 @@ export interface SeriesItem {
             position: string,
             name: string,
             pictureUrl: string,
+            progress?: number,
+            currentTime?: number,
         }[]
     }
 }
@@ -53,6 +57,9 @@ export const seriesList = () => {
         data.value = [];
 
         const store = container.get("inaudible.store.series") as SeriesStore;
+        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
+        const progressItems = await progressStore.getAll();
+        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
         let series = await store.getAll();
         loading.value = false;
 
@@ -70,6 +77,8 @@ export const seriesList = () => {
                     position: book.position,
                     name: book.name,
                     pictureUrl: book.pictureUrl,
+                    progress: progressMap.get(book.id)?.progress ?? 0,
+                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 }))
             },
         }))
@@ -91,6 +100,9 @@ export const seriesOne = () => {
         const bookStore = container.get("inaudible.store.books") as BookStore;
         const seriesStore = container.get("inaudible.store.series") as SeriesStore;
         const authorStore = container.get("inaudible.store.authors") as AuthorStore;
+        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
+        const progressItems = await progressStore.getAll();
+        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
         let series = await seriesStore.get(request.id);
 
         let genres = new Set<string>();
@@ -124,7 +136,7 @@ export const seriesOne = () => {
                         books: (await bookStore.getMoreByAuthor(author.id, 6)).map(book => ({
                             id: book.id,
                             name: book.meta.title,
-                            pictureUrl: `https://audible.hylia.network/audiobookshelf/api/items/${book.id}/cover`,
+                            pictureUrl: buildApiUrl(`items/${book.id}/cover`),
                         })),
                     });
                 }
@@ -150,6 +162,8 @@ export const seriesOne = () => {
                     name: book.name,
                     pictureUrl: book.pictureUrl,
                     position: book.position.toString(),
+                    progress: progressMap.get(book.id)?.progress ?? 0,
+                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
                 }))
             },
         };
