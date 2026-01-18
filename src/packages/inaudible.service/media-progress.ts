@@ -1,4 +1,5 @@
 import type { AudiobookshelfMeApi } from "../audiobookshelf.api/service/me";
+import type { MyLibraryStore } from "../inaudible.model/store/my-library-store";
 
 
 export class InaudibleMediaProgressService extends EventTarget {
@@ -32,10 +33,15 @@ export class InaudibleMediaProgressService extends EventTarget {
         progress?: number,
     ) {
         const progressStore = this._container.get("inaudible.store.progress") as any;
+        const libraryStore = this._container.get("inaudible.store.library") as MyLibraryStore | undefined;
         const progressValue = Number.isFinite(progress) ? (progress as number) : duration > 0 ? currentTime / duration : 0;
         const now = Date.now();
 
-        await this.updateMediaProgress({ libraryItemId, currentTime, duration, progress: progressValue });
+        try {
+            await this.updateMediaProgress({ libraryItemId, currentTime, duration, progress: progressValue });
+        } catch (error) {
+            console.warn('Failed to update progress on server; storing locally.', error);
+        }
 
         await progressStore?.put({
             libraryItemId,
@@ -47,25 +53,48 @@ export class InaudibleMediaProgressService extends EventTarget {
             position: currentTime,
         });
 
+        if (libraryStore) {
+            const existing = await libraryStore.get(libraryItemId);
+            const addedAt = existing?.addedAt ?? now;
+            await libraryStore.put({
+                id: libraryItemId,
+                addedAt,
+                updatedAt: now,
+            });
+        }
+
         this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: { currentTime, progress: progressValue } }));
     }
 
     async updateByLibraryItemId(libraryItemId: string) {
         const progressStore = this._container.get("inaudible.store.progress") as any;
         const meApi = this._container.get("audiobookshelf.api.me") as AudiobookshelfMeApi;
+        const libraryStore = this._container.get("inaudible.store.library") as MyLibraryStore | undefined;
 
         const result = await progressStore.getByLibraryItemId(libraryItemId);
         this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: result ?? null }));
-
+        if (result) {
+            return;
+        }
 
         const progress = await meApi.getMediaProgress({ id: libraryItemId });
         if (progress && progress.progress) {
+            const now = Date.now();
             await progressStore.put({
                 libraryItemId: libraryItemId,
                 position: progress.currentTime,
                 duration: progress.duration,
-                updatedAt: Date.now(),
+                updatedAt: now,
             });
+            if (libraryStore) {
+                const existing = await libraryStore.get(libraryItemId);
+                const addedAt = existing?.addedAt ?? now;
+                await libraryStore.put({
+                    id: libraryItemId,
+                    addedAt,
+                    updatedAt: now,
+                });
+            }
 
             this.dispatchEvent(new CustomEvent(`${libraryItemId}-progress`, { detail: progress.progress }));
         } else {

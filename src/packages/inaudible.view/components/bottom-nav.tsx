@@ -3,6 +3,7 @@ import { useLocation } from 'preact-iso';
 import discover from "../icons/magnifying-glass.svg";
 import books from "../icons/book-open-cover.svg";
 import series from "../icons/books.svg";
+import library from "../icons/book-open-cover.svg";
 import authors from "../icons/users-line.svg";
 import stats from "../icons/chart-pie.svg";
 import profile from "../icons/user.svg";
@@ -16,6 +17,12 @@ export const BottomNav = () => {
         <img src={discover} alt="discover" />
       </adw-icon>
       Discover
+    </adw-tab>
+    <adw-tab href="/library" selected={location.path.startsWith("/library") ? true : undefined} onClick={() => location.route("/library")}>
+      <adw-icon style="width: 1.4em; height: 1.4em;">
+        <img src={library} alt="my library" />
+      </adw-icon>
+      My Library
     </adw-tab>
     <adw-tab href="/books" selected={location.path.startsWith("/books") ? true : undefined} onClick={() => location.route("/books")}>
       <adw-icon style="width: 1.4em; height: 1.4em;">

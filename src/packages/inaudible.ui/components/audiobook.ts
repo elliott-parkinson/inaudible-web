@@ -1,10 +1,11 @@
 import { container } from "../../../container";
 import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
+import type { MyLibraryStore } from "../../inaudible.model/store/my-library-store";
 
 class AudiobookElement extends HTMLElement {
     static get observedAttributes() {
-        return ['position', 'src', 'title', 'progress', 'libraryitemid'];
+        return ['position', 'src', 'title', 'progress', 'libraryitemid', 'in-library'];
     }
 
     #root = this.attachShadow({ mode: 'open' });
@@ -13,8 +14,11 @@ class AudiobookElement extends HTMLElement {
     #progressService: InaudibleMediaProgressService | null = null;
     #progressSubscriptionTarget: EventTarget | null = null;
     #progressEventName: string | null = null;
+    #libraryStore: MyLibraryStore | null = null;
+    #inLibrary: boolean = false;
     #onProgressEvent = (event: Event) => {
         const detail = (event as CustomEvent).detail;
+        this.#setInLibraryAttribute(this.#deriveInLibrary(detail));
         const progressValue = this.#extractProgress(detail);
         if (progressValue === null) {
             return;
@@ -25,10 +29,15 @@ class AudiobookElement extends HTMLElement {
 
     connectedCallback() {
         this.#libraryItemId = this.getAttribute('libraryitemid');
-        this.#setProgressAttribute(0);
+        if (!this.hasAttribute('progress')) {
+            this.#setProgressAttribute(0);
+        }
+        this.#setInLibraryAttribute(this.hasAttribute('in-library'));
         this.#ensureProgressService();
+        this.#ensureLibraryStore();
         this.#updateProgressSubscription();
         this.#requestProgressUpdate();
+        this.#loadInLibrary();
         this.#render();
     }
 
@@ -38,10 +47,18 @@ class AudiobookElement extends HTMLElement {
         }
         if (name === 'libraryitemid') {
             this.#libraryItemId = newVal;
-            this.#setProgressAttribute(0);
+            if (!this.hasAttribute('progress')) {
+                this.#setProgressAttribute(0);
+            }
+            this.#setInLibraryAttribute(this.hasAttribute('in-library'));
             this.#ensureProgressService();
+            this.#ensureLibraryStore();
             this.#updateProgressSubscription();
             this.#requestProgressUpdate();
+            this.#loadInLibrary();
+        }
+        if (name === 'in-library') {
+            this.#inLibrary = newVal !== null;
         }
         this.#render();
     }
@@ -70,11 +87,30 @@ class AudiobookElement extends HTMLElement {
         this.#progressService = service?.progress ?? null;
     }
 
+    #ensureLibraryStore() {
+        if (this.#libraryStore) {
+            return;
+        }
+        this.#libraryStore = (container.get("inaudible.store.library") as MyLibraryStore) ?? null;
+    }
+
     #requestProgressUpdate() {
         if (!this.#libraryItemId || !this.#progressService) {
             return;
         }
+        if (this.hasAttribute('progress')) {
+            return;
+        }
         void this.#progressService.updateByLibraryItemId(this.#libraryItemId);
+    }
+
+    async #loadInLibrary() {
+        if (this.hasAttribute('in-library') || !this.#libraryStore || !this.#libraryItemId) {
+            return;
+        }
+        const isInLibrary = await this.#libraryStore.has(this.#libraryItemId);
+        this.#setInLibraryAttribute(isInLibrary);
+        this.#render();
     }
 
     #updateProgressSubscription() {
@@ -126,12 +162,38 @@ class AudiobookElement extends HTMLElement {
         this.setAttribute('progress', valueString);
     }
 
+    #setInLibraryAttribute(value: boolean) {
+        if (this.#inLibrary === value) {
+            return;
+        }
+        this.#inLibrary = value;
+        if (value) {
+            this.setAttribute('in-library', 'true');
+        } else {
+            this.removeAttribute('in-library');
+        }
+    }
+
+    #deriveInLibrary(detail: unknown): boolean {
+        if (detail === null || detail === undefined) {
+            return false;
+        }
+        if (typeof detail === 'number') {
+            return true;
+        }
+        if (typeof detail === 'object') {
+            return true;
+        }
+        return false;
+    }
+
     #render() {
         const position = this.getAttribute('position');
         const src = this.getAttribute('src');
         const title = this.getAttribute('title');
         const progressRaw = parseFloat(this.getAttribute('progress') ?? '0');
         const progress = Number.isFinite(progressRaw) ? Math.min(Math.max(progressRaw, 0), 100) : 0;
+        const inLibrary = this.hasAttribute('in-library');
 
         this.#root.innerHTML = `
         <style>
@@ -194,10 +256,41 @@ class AudiobookElement extends HTMLElement {
                 width: ${progress}%;
                 background: #3584E4;
               }
+
+              .library-flag {
+                position: absolute;
+                top: 0.35em;
+                right: 0.35em;
+                width: 1.6em;
+                height: 1.6em;
+                border-radius: 999px;
+                background: #27AE60;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+              }
+
+              .library-flag svg {
+                width: 0.95em;
+                height: 0.95em;
+                fill: none;
+                stroke: #fff;
+                stroke-width: 3;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+              }
             }
         </style>
         <figure class="book">
         	${position ? `<span class="position">${position}</span>` : ''}
+            ${inLibrary ? `
+                <span class="library-flag" aria-label="In library">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12.5l4.2 4.2L19 7.5"></path>
+                    </svg>
+                </span>
+            ` : ''}
             <picture>
                 <img src="${src}" alt="${title}" />
             </picture>

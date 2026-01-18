@@ -1,6 +1,7 @@
 import { EventBus } from "../../bus.events/event-bus";
 import type { Login } from "../interfaces/api/login-response";
 import type { User } from "../interfaces/model/user";
+import type { ServerSettings } from "../interfaces/model/server-settings";
 
 interface Events {
 	login: (user: Login.Response.user) => void;
@@ -106,6 +107,23 @@ export class AudiobookshelfApi {
         const data = await response.json();
         this.accessToken = data.accessToken;
         this.saveTokens();
+    }
+
+    async getServerSettings(baseUrl?: string): Promise<ServerSettings | null> {
+        const targetBaseUrl = (baseUrl ?? this._baseUrl ?? "").replace(/\/+$/, "");
+        if (!targetBaseUrl) {
+            return null;
+        }
+
+        const response = await fetch(`${targetBaseUrl}/audiobookshelf/api/server-settings`, {
+            method: "GET",
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return response.json();
     }
 
 

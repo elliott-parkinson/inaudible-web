@@ -135,6 +135,8 @@ export class InaudibleSynchronizationService extends EventTarget {
     async synchronize(defaultLibrary: string) {
         const api = this._container.get("audiobookshelf.api") as AudiobookshelfApi;
         const libraries = this._container.get("audiobookshelf.api.libraries") as Libraries;
+        const progressStore = this._container.get("inaudible.store.progress") as any;
+        const libraryStore = this._container.get("inaudible.store.library") as any;
 
         const mylibrary = await libraries.mediaProgress({});
         this._lastPercent = 0;
@@ -147,6 +149,17 @@ export class InaudibleSynchronizationService extends EventTarget {
         await this.processFetchedData(fetched);
         
         this.cacheCoversAndImages();
+        if (progressStore && libraryStore) {
+            const progressItems = await progressStore.getAll();
+            const now = Date.now();
+            if (progressItems?.length) {
+                await libraryStore.putMany(progressItems.map((item: any) => ({
+                    id: item.libraryItemId,
+                    addedAt: item.startedAt ?? item.updatedAt ?? item.lastUpdate ?? now,
+                    updatedAt: item.updatedAt ?? item.lastUpdate ?? now,
+                })));
+            }
+        }
 
         localStorage.setItem("inaudible.lastsync", Date.now().toString());
     }

@@ -43,3 +43,95 @@ adw-carousel > * {
   scroll-snap-align: start;
   flex-shrink: 0;
 }
+
+.category-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.category-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.category-row-header h3 {
+  margin: 0;
+}
+
+.category-row-actions {
+  display: inline-flex;
+  gap: 0.4em;
+}
+
+.category-row-actions button {
+  border: 1px solid #d1d1d1;
+  background: #fff;
+  border-radius: 999px;
+  width: 2.2em;
+  height: 2.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.category-row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.4em 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(140px, 180px);
+  gap: 0.8em;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.category-row-list > li {
+  scroll-snap-align: start;
+}
+
+.downloads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+}
+
+.downloads li {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 0.8em;
+}
+
+.downloads img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 0.4em;
+  background: #e6e6e6;
+  cursor: pointer;
+}
+
+.download-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-size: 0.9em;
+  color: #555;
+}
+
+.download-meta strong {
+  color: #222;
+  cursor: pointer;
+}
+
+.download-meta strong:hover {
+  text-decoration: underline;
+}

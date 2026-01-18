@@ -15,6 +15,7 @@ import SeriesRoute from '../modules/series-list/route/content';
 import SingleSeriesRoute from '../modules/series/route/content';
 import StatsRoute from '../modules/stats/route/content';
 import ProfileRoute from '../modules/profile/route/content';
+import LibraryRoute from '../modules/library/route/content';
 
 export const MainContent = (props: any ) => {
     return <>
@@ -22,6 +23,7 @@ export const MainContent = (props: any ) => {
         <Router>
           <Route path='/' component={BooksRoute} />
           <Route path='/discover' component={DiscoverRoute} />
+          <Route path='/library' component={LibraryRoute} />
           <Route path='/books' component={BooksRoute} />
           <Route path='/books/:id' component={BookRoute} />
           <Route path='/authors' component={AuthorsRoute} />

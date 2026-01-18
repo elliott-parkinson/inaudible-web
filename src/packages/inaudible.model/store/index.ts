@@ -5,7 +5,7 @@ export class AudiobookStore {
     database: IDBPDatabase<unknown>;
 
     constructor() {
-        this._database = openDB('AudiobooksDB', 3, {
+        this._database = openDB('AudiobooksDB', 4, {
             upgrade(db) {
                 if (!db.objectStoreNames.contains('books')) {
                     const books = db.createObjectStore('books', { keyPath: 'id' });
@@ -31,6 +31,10 @@ export class AudiobookStore {
                 if (!db.objectStoreNames.contains('stored-progress')) {
                     const progress = db.createObjectStore('stored-progress', { keyPath: 'id' });
                     progress.createIndex('libraryItemId', 'libraryItemId', { unique: false });
+                }
+
+                if (!db.objectStoreNames.contains('downloads')) {
+                    db.createObjectStore('downloads', { keyPath: 'id' });
                 }
             },
         });

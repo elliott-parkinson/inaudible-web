@@ -4,6 +4,8 @@ import { AudiobookshelfMeApi } from "./packages/audiobookshelf.api/service/me";
 import { AudiobookStore } from "./packages/inaudible.model/store";
 import { AuthorStore } from "./packages/inaudible.model/store/authors-store";
 import { BookStore } from "./packages/inaudible.model/store/books-store";
+import { DownloadsStore } from "./packages/inaudible.model/store/downloads-store";
+import { MyLibraryStore } from "./packages/inaudible.model/store/my-library-store";
 import { ProgressStore } from "./packages/inaudible.model/store/progress-store";
 import { SeriesStore } from "./packages/inaudible.model/store/series-store";
 import { InaudibleService } from "./packages/inaudible.service";
@@ -28,6 +30,8 @@ export const init = async () => {
     container.set("inaudible.store", store);
     container.set("inaudible.store.authors", new AuthorStore(store.database));
     container.set("inaudible.store.books", new BookStore(store.database));
+    container.set("inaudible.store.downloads", new DownloadsStore(store.database));
+    container.set("inaudible.store.library", new MyLibraryStore(store.database));
     container.set("inaudible.store.series", new SeriesStore(store.database));
     container.set("inaudible.store.progress", new ProgressStore(store.database));
 }

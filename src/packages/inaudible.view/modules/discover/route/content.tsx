@@ -2,7 +2,7 @@ import { render, h } from 'preact';
 import model from '../../../model';
 import { useLocation, useRoute } from 'preact-iso';
 import { Signal, signal } from '@preact/signals';
-import { useLayoutEffect } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 
 const viewModel = {
     searchTerm:  signal<string>(""),
@@ -12,7 +12,7 @@ const viewModel = {
 const controller = () => {
     const route = useRoute();
     const location = useLocation();
-    const { discover, latest, continueListening, loading, error, load } = model.discover.discover;
+    const { discover, latest, continueListening, categories, loading, error, load } = model.discover.discover;
 
     useLayoutEffect(() => {
         load({ page: 0, limit: 10 });
@@ -21,18 +21,50 @@ const controller = () => {
     return {
         route,
         location,
-        discover, continueListening, latest, error, loading, load,
+        discover, continueListening, categories, latest, error, loading, load,
     }
 }
+
+const CategoryRow = ({ category, onSelect }: { category: { name: string; books: any[] }; onSelect: (id: string) => void }) => {
+    const listRef = useRef<HTMLOListElement>(null);
+
+    const scrollBy = (offset: number) => {
+        listRef.current?.scrollBy({ left: offset, behavior: 'smooth' });
+    };
+
+    return (
+        <div className="category-row">
+            <div className="category-row-header">
+                <h3>{category.name}</h3>
+                <div className="category-row-actions">
+                    <button type="button" onClick={() => scrollBy(-320)} aria-label={`Scroll ${category.name} left`}>
+                        &lt;
+                    </button>
+                    <button type="button" onClick={() => scrollBy(320)} aria-label={`Scroll ${category.name} right`}>
+                        &gt;
+                    </button>
+                </div>
+            </div>
+            <ol class="category-row-list" ref={listRef}>
+                {category.books.map(book => (
+                    <li key={book.id} onClick={() => onSelect(book.id)}>
+                        <inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
+                    </li>
+                ))}
+            </ol>
+        </div>
+    );
+};
 
 export default () => {
     const {
         route,
         location,
-        discover, latest, continueListening, error, loading,
+        discover, latest, continueListening, categories, error, loading,
     } = controller();
 
     const continueListeningSafe = continueListening ?? signal([]);
+    const categoriesSafe = categories ?? signal([]);
 
     return <>
         <adw-clamp>
@@ -44,6 +76,18 @@ export default () => {
 							<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
 						</li>)}
                     </ol> }
+                </>
+            )}
+            {categoriesSafe.value.length > 0 && (
+                <>
+                    <h2>Categories</h2>
+                    {categoriesSafe.value.map(category => (
+                        <CategoryRow
+                            key={category.name}
+                            category={category}
+                            onSelect={(id) => location.route(`/books/${id}`)}
+                        />
+                    ))}
                 </>
             )}
 	        <h2>Discover</h2>

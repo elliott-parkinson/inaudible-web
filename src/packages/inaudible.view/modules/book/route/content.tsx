@@ -6,6 +6,8 @@ import { signal } from '@preact/signals';
 import { MoreByAuthor } from '../../authors/component/more-by-author';
 import { container } from '../../../../../container';
 import type { AudiobookshelfApi } from '../../../../audiobookshelf.api/service';
+import type { InaudibleService } from '../../../../inaudible.service';
+import type { DownloadsStore } from '../../../../inaudible.model/store/downloads-store';
 
 
 const viewModel = {
@@ -35,20 +37,156 @@ export default () => {
         data, error, loading, load,
     } = controller();
 
-    const [playerOpen, setPlayerOpen] = useState(false);
+    const [libraryUpdating, setLibraryUpdating] = useState(false);
+    const [downloadUpdating, setDownloadUpdating] = useState(false);
     const api = container.get("audiobookshelf.api") as AudiobookshelfApi;
+    const inaudible = container.get("inaudible.service") as InaudibleService;
+    const downloadsStore = container.get("inaudible.store.downloads") as DownloadsStore;
     const accessToken = api.getAccessToken();
     const baseUrl = api.getBaseUrl();
 
-    const openPlayer = () => {
+    const handleOpenPlayer = () => {
         if (!data.value?.id) {
             return;
         }
-        setPlayerOpen(true);
+        model.player.openPlayer({
+            libraryItemId: data.value.id,
+            title: data.value.name ?? "",
+            coverUrl: data.value.pictureUrl ?? "",
+            startPosition: data.value.resumeTime ?? data.value.currentTime ?? 0,
+        });
     };
 
-    const closePlayer = () => {
-        setPlayerOpen(false);
+    const addToLibrary = async () => {
+        if (!data.value?.id || !inaudible?.progress || libraryUpdating || data.value?.inLibrary) {
+            return;
+        }
+        setLibraryUpdating(true);
+        try {
+            const duration = data.value.duration ?? 0;
+            const seedPosition = Math.min(10, duration || 10);
+            const seedProgress = duration > 0 ? seedPosition / duration : 0;
+            await inaudible.progress.updateMediaProgressByLibraryItemId(
+                data.value.id,
+                seedPosition,
+                duration,
+                seedProgress
+            );
+            data.value = {
+                ...data.value,
+                inLibrary: true,
+                progress: seedProgress,
+                currentTime: seedPosition,
+            };
+        } finally {
+            setLibraryUpdating(false);
+        }
+    };
+
+    const normalizeApiBase = (url: string) => {
+        const trimmed = url.replace(/\/+$/, '');
+        if (trimmed.endsWith('/audiobookshelf/api')) {
+            return trimmed;
+        }
+        if (trimmed.endsWith('/audiobookshelf')) {
+            return `${trimmed}/api`;
+        }
+        return `${trimmed}/audiobookshelf/api`;
+    };
+
+    const resolveContentUrl = (apiBase: string, contentUrl: string, token: string) => {
+        const origin = apiBase.replace(/\/api$/, '');
+        const url = contentUrl.startsWith('http') ? contentUrl : `${origin}${contentUrl}`;
+        if (url.includes('token=')) {
+            return url;
+        }
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}token=${encodeURIComponent(token)}`;
+    };
+
+    const downloadBook = async () => {
+        if (!data.value?.id || !accessToken || !baseUrl || downloadUpdating) {
+            return;
+        }
+        setDownloadUpdating(true);
+        try {
+            const apiBase = normalizeApiBase(baseUrl);
+            const streamUrl = `${apiBase}/items/${data.value.id}/play?token=${encodeURIComponent(accessToken)}`;
+            const response = await fetch(streamUrl, { method: 'POST' });
+            if (!response.ok) {
+                return;
+            }
+            const payload = await response.json();
+            const trackCandidates =
+                payload?.libraryItem?.media?.tracks ||
+                payload?.media?.tracks ||
+                payload?.audioTracks ||
+                payload?.mediaMetadata?.audioTracks ||
+                [];
+            const trackList = Array.isArray(trackCandidates) ? trackCandidates : [];
+            const downloadableTracks = trackList.filter((track) => track?.contentUrl && !track.contentUrl.includes('/hls/'));
+            if (!downloadableTracks.length) {
+                return;
+            }
+            const tracks: { index: number; title: string; size: number; blob: Blob }[] = [];
+            let totalSize = 0;
+            for (const track of downloadableTracks) {
+                const contentUrl = track?.contentUrl;
+                if (!contentUrl) {
+                    continue;
+                }
+                const downloadUrl = resolveContentUrl(apiBase, contentUrl, accessToken);
+                const mediaResponse = await fetch(downloadUrl);
+                if (!mediaResponse.ok) {
+                    continue;
+                }
+                const blob = await mediaResponse.blob();
+                const title = track?.title || track?.name || track?.metadata?.title || `Track ${tracks.length + 1}`;
+                const index = typeof track?.index === 'number' ? track.index : tracks.length + 1;
+                tracks.push({
+                    index,
+                    title,
+                    size: blob.size,
+                    blob,
+                });
+                totalSize += blob.size;
+            }
+            if (!tracks.length) {
+                return;
+            }
+            const now = Date.now();
+            await downloadsStore.put({
+                id: data.value.id,
+                title: data.value.name ?? 'Untitled',
+                coverUrl: data.value.pictureUrl ?? '',
+                size: totalSize,
+                tracks,
+                createdAt: now,
+                updatedAt: now,
+            });
+            data.value = {
+                ...data.value,
+                isDownloaded: true,
+            };
+        } finally {
+            setDownloadUpdating(false);
+        }
+    };
+
+    const deleteDownload = async () => {
+        if (!data.value?.id || downloadUpdating) {
+            return;
+        }
+        setDownloadUpdating(true);
+        try {
+            await downloadsStore.delete(data.value.id);
+            data.value = {
+                ...data.value,
+                isDownloaded: false,
+            };
+        } finally {
+            setDownloadUpdating(false);
+        }
     };
 
     return <>
@@ -67,7 +205,23 @@ export default () => {
                 { data.value?.genres.length && <span><strong>Genres:</strong> {data.value?.genres.join(", ")}</span> }
                 { data.value?.description && <p dangerouslySetInnerHTML={{ __html: data.value?.description }} ></p> }
                 <div className="book-actions">
-                    <button className="primary" onClick={openPlayer}>Play</button>
+                    <button className="primary" onClick={handleOpenPlayer}>Play</button>
+                    {data.value?.inLibrary ? (
+                        <sup className="badge success">My library</sup>
+                    ) : (
+                        <button onClick={addToLibrary} disabled={libraryUpdating}>
+                            {libraryUpdating ? 'Adding...' : 'Add to my library'}
+                        </button>
+                    )}
+                    {data.value?.isDownloaded ? (
+                        <button onClick={deleteDownload} disabled={downloadUpdating}>
+                            {downloadUpdating ? 'Removing...' : 'Delete local item'}
+                        </button>
+                    ) : (
+                        <button onClick={downloadBook} disabled={downloadUpdating}>
+                            {downloadUpdating ? 'Downloading...' : 'Download'}
+                        </button>
+                    )}
                 </div>
             </section>
             { /* Should ideally be a carousel */ }
@@ -86,25 +240,5 @@ export default () => {
             </section>
 
         </adw-clamp>
-        <div
-            className={`adw-bottom-sheet-backdrop${playerOpen ? " open" : ""}`}
-            onClick={closePlayer}
-        ></div>
-        <adw-bottom-sheet open={playerOpen ? true : undefined}>
-            <div className="adw-player">
-                <div className="adw-player-header">
-                    <strong>{data.value?.name}</strong>
-                    <button onClick={closePlayer}>Close</button>
-                </div>
-                {playerOpen && data.value?.id && (
-                    <audiobookshelf-player
-                        media-item-id={data.value.id}
-                        api-key={accessToken ?? ""}
-                        base-url={baseUrl ?? ""}
-                        start-position={data.value?.resumeTime ?? data.value?.currentTime ?? 0}
-                    />
-                )}
-            </div>
-        </adw-bottom-sheet>
     </>;
 }

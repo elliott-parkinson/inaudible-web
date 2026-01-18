@@ -69,3 +69,10 @@ adw-bottom-sheet[open] {
   padding: 0.4em 0.6em;
   font-size: 0.9em;
 }
+
+.adw-player-dock {
+  background-color: #FAFAFA;
+  border-top: 1px solid #E4E4E4;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.08);
+  padding: 0.9em 1em 1.1em;
+}

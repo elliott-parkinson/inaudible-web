@@ -4,6 +4,7 @@ import { BookStore } from "../../inaudible.model/store/books-store";
 import type { AuthorStore } from "../../inaudible.model/store/authors-store";
 import type { SeriesStore } from "../../inaudible.model/store/series-store";
 import type { ProgressStore } from "../../inaudible.model/store/progress-store";
+import type { MyLibraryStore } from "../../inaudible.model/store/my-library-store";
 import { buildApiUrl } from "./api";
 
 export interface Book {
@@ -18,6 +19,8 @@ export interface Book {
     progress?: number,
     currentTime?: number,
     resumeTime?: number,
+    inLibrary?: boolean,
+    isDownloaded?: boolean,
 
     narrators: string[],
 
@@ -137,10 +140,15 @@ export const bookOne = () => {
 
         const store = container.get("inaudible.store.books") as BookStore;
         const progressStore = container.get("inaudible.store.progress") as ProgressStore;
+        const downloadsStore = container.get("inaudible.store.downloads") as any;
+        const libraryStore = container.get("inaudible.store.library") as MyLibraryStore;
         const seriesStore = container.get("inaudible.store.series") as SeriesStore;
         const authorStore = container.get("inaudible.store.authors") as AuthorStore;
         let book = await store.get(request.id);
         const progress = await progressStore.getByLibraryItemId(book.id);
+        const inLibrary = await libraryStore.has(book.id);
+        const downloaded = downloadsStore ? await downloadsStore.get(book.id) : null;
+        const isDownloaded = !!downloaded?.tracks?.length;
         const progressItems = await progressStore.getAll();
         const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
 
@@ -183,7 +191,6 @@ export const bookOne = () => {
         const currentTime = progress?.currentTime ?? 0;
         const progressTime = progress?.progress ? progress.progress * book.duration : 0;
         const resumeTime = progressTime && Math.abs(progressTime - currentTime) > 120 ? progressTime : currentTime;
-
         data.value = {
             id: book.id,
             ino: book.ino,
@@ -193,6 +200,8 @@ export const bookOne = () => {
             progress: progress?.progress ?? 0,
             currentTime,
             resumeTime,
+            inLibrary,
+            isDownloaded,
             narrators: book.meta.narratorName.split(", "),
             published: book.meta.publishedYear !== "0" ? book.meta.publishedYear : null,
             genres: book.meta.genres,

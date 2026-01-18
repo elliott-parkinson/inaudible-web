@@ -10,13 +10,24 @@ export const latestBooks = () => {
 	const discover = signal<BookItem[]>([]);
     const latest = signal<BookItem[]>([]);
     const continueListening = signal<BookItem[]>([]);
+    const categories = signal<{ name: string; books: BookItem[] }[]>([]);
     const loading = signal<boolean>(true);
     const error = signal<null | string>(null);
+
+    const shuffle = <T,>(items: T[]) => {
+        const list = [...items];
+        for (let i = list.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [list[i], list[j]] = [list[j], list[i]];
+        }
+        return list;
+    };
 
     const load = async (request: { page: number; limit: number }) => {
         loading.value = true;
         error.value = null;
         latest.value = [];
+        categories.value = [];
 
         const store = container.get("inaudible.store.books") as BookStore;
         const progressStore = container.get("inaudible.store.progress") as ProgressStore;
@@ -68,10 +79,38 @@ export const latestBooks = () => {
 
         continueListening.value = startedItems;
 
+        const genreMap = new Map<string, BookItem[]>();
+        allBooks.forEach(book => {
+            const genres = book.meta.genres ?? [];
+            genres.forEach(genre => {
+                if (!genre) {
+                    return;
+                }
+                const list = genreMap.get(genre) ?? [];
+                list.push({
+                    id: book.id,
+                    ino: book.ino,
+                    name: book.meta.title,
+                    pictureUrl: buildApiUrl(`items/${book.id}/cover`),
+                    progress: progressMap.get(book.id)?.progress ?? 0,
+                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
+                });
+                genreMap.set(genre, list);
+            });
+        });
+
+        const categoryPool = shuffle(Array.from(genreMap.entries()));
+        categories.value = categoryPool
+            .slice(0, 6)
+            .map(([name, books]) => ({
+                name,
+                books: shuffle(books).slice(0, 10),
+            }));
+
         loading.value = false;
     };
 
-    return { discover, latest, continueListening, loading, error, load }
+    return { discover, latest, continueListening, categories, loading, error, load }
 }
 
 export default {
