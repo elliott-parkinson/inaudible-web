@@ -14,6 +14,7 @@ export default defineConfig(({ command, mode }) => {
       },   // HTTPS only in dev
     },
     preview: {
+      allowedHosts: 'all',
       host: "0.0.0.0",
       port: 5173,
       https: false,   // Always HTTP in prod
