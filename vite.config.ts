@@ -14,7 +14,7 @@ export default defineConfig(({ command, mode }) => {
       },   // HTTPS only in dev
     },
     preview: {
-      allowedHosts: "all",
+      allowedHosts: ["inaudible.hylia.network", "inaudible.hylia.network:443", "inaudible.hylia.network:5173"],
       host: "0.0.0.0",
       port: 5173,
       https: false,   // Always HTTP in prod
