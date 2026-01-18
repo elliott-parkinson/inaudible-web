@@ -17,6 +17,7 @@ export class InaudibleMediaProgressService extends EventTarget {
         await meApi.updateProgress({
             libraryItemId: data.libraryItemId,
             body: {
+                libraryItemId: data.libraryItemId,
                 progress: progressValue,
                 currentTime: data.currentTime,
                 duration: data.duration,

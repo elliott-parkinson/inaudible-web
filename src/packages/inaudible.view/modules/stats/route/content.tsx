@@ -2,6 +2,7 @@ import { render, h } from 'preact';
 import model from '../../../model';
 import { useLayoutEffect } from 'preact/hooks';
 import { useLocation, useRoute } from 'preact-iso';
+import type { MeListeningStats } from '../../../../audiobookshelf.api/interfaces/api/me-listening-stats';
 
 const controller = () => {
     const route = useRoute();
@@ -51,8 +52,8 @@ export default () => {
         if (!itemId) {
             continue;
         }
-        const startedAt = session.startedAt ?? session.updatedAt ?? 0;
-        const updatedAt = session.updatedAt ?? startedAt;
+        const startedAt = Number(session.startedAt ?? session.updatedAt ?? 0);
+        const updatedAt = Number(session.updatedAt ?? startedAt);
         const existing = sessionByItem.get(itemId);
         if (!existing) {
             sessionByItem.set(itemId, { lastUpdated: updatedAt, firstStarted: startedAt });
@@ -64,7 +65,7 @@ export default () => {
         });
     }
 
-    const items = Object.values(stats?.items ?? {})
+    const items = (Object.values(stats?.items ?? {}) as MeListeningStats.ListeningItem[])
         .filter(item => (item.timeListening ?? 0) > 0)
         .map(item => {
             const timing = sessionByItem.get(item.id);

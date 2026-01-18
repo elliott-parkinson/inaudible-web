@@ -10,12 +10,12 @@ import { buildApiUrl } from "./api";
 export interface SeriesItem {
     id: string,
     name: string,
-    genres: string[],
-    duration: number,
-    description: string,
-    published: string,
-    narrators: string[],
-    authors: {
+    genres?: string[],
+    duration?: number,
+    description?: string,
+    published?: string,
+    narrators?: string[],
+    authors?: {
         id: string,
         name: string,
         books: {

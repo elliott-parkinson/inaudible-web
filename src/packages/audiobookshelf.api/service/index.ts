@@ -4,7 +4,7 @@ import type { User } from "../interfaces/model/user";
 import type { ServerSettings } from "../interfaces/model/server-settings";
 
 interface Events {
-	login: (user: Login.Response.user) => void;
+	login: (user: Login.Response["user"]) => void;
 	logout: () => void;
 }
 
@@ -200,7 +200,7 @@ export class AudiobookshelfApi {
         return data?.user ?? data;
     }
 
-    async logout(full?: false): Promise<void> {
+    async logout(full?: boolean): Promise<void> {
         await fetch(`${this._baseUrl}/audiobookshelf/api/logout`, {
             method: 'POST',
             headers: {
