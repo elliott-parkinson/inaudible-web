@@ -1,4 +1,6 @@
 import { container } from "../../../container";
+import { html, render } from "lit-html";
+import type { PlayerTrackElement } from "./player-track";
 import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
 import type { DownloadsStore } from "../../inaudible.model/store/downloads-store";
@@ -25,15 +27,20 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   forwardButton: HTMLButtonElement;
   prevChapterButton: HTMLButtonElement;
   nextChapterButton: HTMLButtonElement;
-  seekBar: HTMLInputElement;
-  positionEl: HTMLSpanElement;
-  chapterEl: HTMLSpanElement;
-  remainingEl: HTMLSpanElement;
-  sleepMetaEl: HTMLSpanElement;
+  trackEl: PlayerTrackElement;
+  volumeButton: HTMLButtonElement;
   volumeSlider: HTMLInputElement;
+  sleepButton: HTMLButtonElement;
   sleepSelect: HTMLSelectElement;
   sleepStatusEl: HTMLSpanElement;
+  chapterButton: HTMLButtonElement;
   chapterSelect: HTMLSelectElement;
+  volumePopover: HTMLDivElement;
+  volumePanel: HTMLDivElement;
+  sleepPopover: HTMLDivElement;
+  sleepPanel: HTMLDivElement;
+  chapterPopover: HTMLDivElement;
+  chapterPanel: HTMLDivElement;
   #progressService: InaudibleMediaProgressService | null;
   #progressSubscriptionTarget: EventTarget | null;
   #progressEventName: string | null;
@@ -52,274 +59,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.audio = document.createElement('audio');
+    this.#renderTemplate();
+    this.#cacheElements();
     this.audio.controls = false;
-    this.statusEl = document.createElement('div');
-    this.statusEl.style.fontSize = '0.9em';
-    this.statusEl.style.color = '#666';
-    this.statusEl.textContent = '';
-    this.statusEl.className = 'player-status';
-
-    const style = document.createElement('style');
-    style.textContent = `
-      :host {
-        display: block;
-      }
-      .player {
-        display: flex;
-        flex-direction: column;
-        gap: 0.9em;
-      }
-      .player-main {
-        display: grid;
-        grid-template-columns: minmax(90px, 140px) 1fr;
-        gap: 1em;
-        align-items: center;
-      }
-      .player-cover {
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        object-fit: cover;
-        border-radius: 0.6em;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-        background: #e6e6e6;
-      }
-      .player-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 0.8em;
-      }
-      .player-buttons {
-        display: flex;
-        align-items: center;
-        gap: 0.6em;
-        flex-wrap: wrap;
-      }
-      .player-buttons button {
-        border: 1px solid #d1d1d1;
-        background: #fff;
-        padding: 0.5em 0.8em;
-        border-radius: 0.6em;
-        cursor: pointer;
-      }
-      .player-buttons button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .player-play {
-        font-size: 1.1em;
-        padding: 0.75em 1.4em;
-        border-radius: 999px;
-        border: none;
-        background: #1d1d1d;
-        color: #fff;
-        min-width: 120px;
-      }
-      .player-seek {
-        width: 100%;
-      }
-      .player-meta {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        font-variant-numeric: tabular-nums;
-        color: #555;
-        font-size: 0.9em;
-      }
-      .player-meta span:nth-child(1) {
-        text-align: left;
-      }
-      .player-meta span:nth-child(2) {
-        text-align: left;
-      }
-      .player-meta span:nth-child(3) {
-        text-align: center;
-      }
-      .player-meta span:nth-child(4) {
-        text-align: right;
-      }
-      .player-status {
-        font-size: 0.9em;
-        color: #666;
-      }
-      .player-bottom-bar {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.8em;
-        align-items: end;
-      }
-      .player-bottom-bar label {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35em;
-        font-size: 0.8em;
-        color: #666;
-      }
-      .player-bottom-bar input[type="range"] {
-        width: 100%;
-      }
-      .player-bottom-bar select,
-      .player-bottom-bar input[type="range"] {
-        border: 1px solid #d1d1d1;
-        border-radius: 0.45em;
-        padding: 0.35em 0.5em;
-        font-size: 0.95em;
-        background: #fff;
-      }
-      .player-sleep-status {
-        font-size: 0.75em;
-        color: #888;
-      }
-      @media (max-width: 640px) {
-        .player-bottom-bar {
-          grid-template-columns: 1fr;
-        }
-      }
-      audio {
-        display: none;
-      }
-    `;
-
-    this.rootEl = document.createElement('div');
-    this.rootEl.className = 'player';
-
-    const main = document.createElement('div');
-    main.className = 'player-main';
-
-    this.coverEl = document.createElement('img');
-    this.coverEl.className = 'player-cover';
-    this.coverEl.alt = 'Book cover';
-
-    const controls = document.createElement('div');
-    controls.className = 'player-controls';
-
-    const buttons = document.createElement('div');
-    buttons.className = 'player-buttons';
-
-    this.prevChapterButton = document.createElement('button');
-    this.prevChapterButton.type = 'button';
-    this.prevChapterButton.textContent = 'Prev Chapter';
-
-    this.backButton = document.createElement('button');
-    this.backButton.type = 'button';
-    this.backButton.textContent = 'Back 10s';
-
-    this.playButton = document.createElement('button');
-    this.playButton.type = 'button';
-    this.playButton.className = 'player-play';
-    this.playButton.textContent = 'Play';
-
-    this.forwardButton = document.createElement('button');
-    this.forwardButton.type = 'button';
-    this.forwardButton.textContent = 'Forward 10s';
-
-    this.nextChapterButton = document.createElement('button');
-    this.nextChapterButton.type = 'button';
-    this.nextChapterButton.textContent = 'Next Chapter';
-
-    buttons.appendChild(this.prevChapterButton);
-    buttons.appendChild(this.backButton);
-    buttons.appendChild(this.playButton);
-    buttons.appendChild(this.forwardButton);
-    buttons.appendChild(this.nextChapterButton);
-
-    controls.appendChild(buttons);
-
-    main.appendChild(this.coverEl);
-    main.appendChild(controls);
-
-    this.seekBar = document.createElement('input');
-    this.seekBar.type = 'range';
-    this.seekBar.className = 'player-seek';
-    this.seekBar.min = '0';
-    this.seekBar.max = '100';
-    this.seekBar.step = '1';
-    this.seekBar.value = '0';
-
-    const meta = document.createElement('div');
-    meta.className = 'player-meta';
-    this.positionEl = document.createElement('span');
-    this.positionEl.textContent = '0:00';
-    this.chapterEl = document.createElement('span');
-    this.chapterEl.textContent = 'Chapter unavailable';
-    this.remainingEl = document.createElement('span');
-    this.remainingEl.textContent = '-0:00';
-    this.sleepMetaEl = document.createElement('span');
-    this.sleepMetaEl.textContent = '';
-
-    meta.appendChild(this.positionEl);
-    meta.appendChild(this.chapterEl);
-    meta.appendChild(this.sleepMetaEl);
-    meta.appendChild(this.remainingEl);
-
-    const bottomBar = document.createElement('div');
-    bottomBar.className = 'player-bottom-bar';
-
-    const volumeGroup = document.createElement('label');
-    volumeGroup.className = 'player-volume';
-    const volumeLabel = document.createElement('span');
-    volumeLabel.textContent = 'Volume';
-    this.volumeSlider = document.createElement('input');
-    this.volumeSlider.type = 'range';
-    this.volumeSlider.min = '0';
-    this.volumeSlider.max = '100';
-    this.volumeSlider.step = '1';
-    this.volumeSlider.value = '100';
-    volumeGroup.appendChild(volumeLabel);
-    volumeGroup.appendChild(this.volumeSlider);
-
-    const sleepGroup = document.createElement('label');
-    sleepGroup.className = 'player-sleep';
-    const sleepLabel = document.createElement('span');
-    sleepLabel.textContent = 'Sleep timer';
-    this.sleepSelect = document.createElement('select');
-    const sleepOptions = [
-      { label: 'Off', value: '0' },
-      { label: '15 min', value: '900' },
-      { label: '30 min', value: '1800' },
-      { label: '45 min', value: '2700' },
-      { label: '60 min', value: '3600' },
-      { label: '90 min', value: '5400' },
-      { label: 'End of chapter', value: 'chapter' },
-    ];
-    sleepOptions.forEach((option) => {
-      const entry = document.createElement('option');
-      entry.value = option.value;
-      entry.textContent = option.label;
-      this.sleepSelect.appendChild(entry);
-    });
-    this.sleepStatusEl = document.createElement('span');
-    this.sleepStatusEl.className = 'player-sleep-status';
-    this.sleepStatusEl.textContent = 'Sleep off';
-    sleepGroup.appendChild(sleepLabel);
-    sleepGroup.appendChild(this.sleepSelect);
-    sleepGroup.appendChild(this.sleepStatusEl);
-
-    const chapterGroup = document.createElement('label');
-    chapterGroup.className = 'player-chapters';
-    const chapterLabel = document.createElement('span');
-    chapterLabel.textContent = 'Chapters';
-    this.chapterSelect = document.createElement('select');
-    this.chapterSelect.disabled = true;
-    const chapterOption = document.createElement('option');
-    chapterOption.value = '-1';
-    chapterOption.textContent = 'Chapters unavailable';
-    this.chapterSelect.appendChild(chapterOption);
-    chapterGroup.appendChild(chapterLabel);
-    chapterGroup.appendChild(this.chapterSelect);
-
-    bottomBar.appendChild(volumeGroup);
-    bottomBar.appendChild(sleepGroup);
-    bottomBar.appendChild(chapterGroup);
-
-    this.rootEl.appendChild(main);
-    this.rootEl.appendChild(this.seekBar);
-    this.rootEl.appendChild(meta);
-    this.rootEl.appendChild(bottomBar);
-    this.rootEl.appendChild(this.statusEl);
-
-    this.shadowRoot.appendChild(style);
-    this.shadowRoot.appendChild(this.rootEl);
-    this.shadowRoot.appendChild(this.audio);
 
     this.mediaItemId = null;
     this.apiKey = null;
@@ -347,6 +89,233 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.#downloadsStore = null;
     this.#localObjectUrl = null;
     this.#localDownload = null;
+  }
+
+  #renderTemplate() {
+    const sleepOptions = [
+      { label: 'Off', value: '0' },
+      { label: '15 min', value: '900' },
+      { label: '30 min', value: '1800' },
+      { label: '45 min', value: '2700' },
+      { label: '60 min', value: '3600' },
+      { label: '90 min', value: '5400' },
+      { label: 'End of chapter', value: 'chapter' },
+    ];
+
+    render(
+      html`
+        <style>
+          :host {
+            display: block;
+          }
+          .player {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9em;
+          }
+          .player-main {
+            display: grid;
+            grid-template-columns: minmax(90px, 140px) 1fr;
+            gap: 1em;
+            align-items: center;
+          }
+          .player-cover {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 0.6em;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+            background: #e6e6e6;
+          }
+          .player-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8em;
+          }
+          .player-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.6em;
+            flex-wrap: wrap;
+          }
+          .player-buttons button {
+            border: 1px solid #d1d1d1;
+            background: #fff;
+            padding: 0.5em 0.8em;
+            border-radius: 0.6em;
+            cursor: pointer;
+          }
+          .player-buttons button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+          .player-play {
+            font-size: 1.1em;
+            padding: 0.75em 1.4em;
+            border-radius: 999px;
+            border: none;
+            background: #1d1d1d;
+            color: #fff;
+            min-width: 120px;
+          }
+          .player-status {
+            font-size: 0.9em;
+            color: #666;
+          }
+          .player-bottom-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.8em;
+            flex-wrap: wrap;
+            margin-top: 0.2em;
+          }
+          .player-popover {
+            position: relative;
+          }
+          .player-popover > button {
+            border: 1px solid #d1d1d1;
+            background: #fff;
+            padding: 0.5em 0.8em;
+            border-radius: 0.6em;
+            cursor: pointer;
+            font-weight: 600;
+          }
+          .player-popover-panel {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.4em);
+            background: #fff;
+            border: 1px solid #e2e2e2;
+            border-radius: 0.6em;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: 0.7em;
+            min-width: 200px;
+            z-index: 2;
+            display: none;
+          }
+          .player-popover-panel.open {
+            display: block;
+          }
+          .player-popover-panel label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35em;
+            font-size: 0.8em;
+            color: #666;
+          }
+          .player-popover-panel input[type="range"] {
+            width: 100%;
+          }
+          .player-popover-panel select,
+          .player-popover-panel input[type="range"] {
+            border: 1px solid #d1d1d1;
+            border-radius: 0.45em;
+            padding: 0.35em 0.5em;
+            font-size: 0.95em;
+            background: #fff;
+          }
+          .player-sleep-status {
+            font-size: 0.75em;
+            color: #888;
+          }
+          @media (max-width: 640px) {
+            .player-bottom-bar {
+              flex-direction: column;
+              align-items: stretch;
+            }
+            .player-popover-panel {
+              left: 0;
+              right: auto;
+              width: 100%;
+            }
+          }
+          audio {
+            display: none;
+          }
+        </style>
+        <div class="player" data-role="root">
+          <div class="player-main">
+            <img class="player-cover" data-role="cover" alt="Book cover" />
+            <div class="player-controls">
+              <div class="player-buttons">
+                <button type="button" data-role="prev-chapter">Prev Chapter</button>
+                <button type="button" data-role="back">Back 10s</button>
+                <button type="button" data-role="play" class="player-play">Play</button>
+                <button type="button" data-role="forward">Forward 10s</button>
+                <button type="button" data-role="next-chapter">Next Chapter</button>
+              </div>
+              <div class="player-bottom-bar">
+                <div class="player-popover" data-role="volume-popover">
+                  <button type="button" data-role="volume-button">Volume</button>
+                  <div class="player-popover-panel" data-role="volume-panel">
+                    <label class="player-volume">
+                      <span>Volume</span>
+                      <input type="range" data-role="volume-slider" min="0" max="100" step="1" value="100" />
+                    </label>
+                  </div>
+                </div>
+                <div class="player-popover" data-role="sleep-popover">
+                  <button type="button" data-role="sleep-button">Sleep</button>
+                  <div class="player-popover-panel" data-role="sleep-panel">
+                    <label class="player-sleep">
+                      <span>Sleep timer</span>
+                      <select data-role="sleep-select">
+                        ${sleepOptions.map(
+                          (option) => html`<option value=${option.value}>${option.label}</option>`
+                        )}
+                      </select>
+                      <span class="player-sleep-status" data-role="sleep-status">Sleep off</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="player-popover" data-role="chapter-popover">
+                  <button type="button" data-role="chapter-button">Chapters</button>
+                  <div class="player-popover-panel" data-role="chapter-panel">
+                    <label class="player-chapters">
+                      <span>Chapters</span>
+                      <select data-role="chapter-select" disabled>
+                        <option value="-1">Chapters unavailable</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <player-track data-role="track"></player-track>
+          <div class="player-status" data-role="status"></div>
+        </div>
+        <audio data-role="audio"></audio>
+      `,
+      this.shadowRoot as ShadowRoot
+    );
+  }
+
+  #cacheElements() {
+    const root = this.shadowRoot as ShadowRoot;
+    this.rootEl = root.querySelector('[data-role="root"]') as HTMLDivElement;
+    this.coverEl = root.querySelector('[data-role="cover"]') as HTMLImageElement;
+    this.playButton = root.querySelector('[data-role="play"]') as HTMLButtonElement;
+    this.backButton = root.querySelector('[data-role="back"]') as HTMLButtonElement;
+    this.forwardButton = root.querySelector('[data-role="forward"]') as HTMLButtonElement;
+    this.prevChapterButton = root.querySelector('[data-role="prev-chapter"]') as HTMLButtonElement;
+    this.nextChapterButton = root.querySelector('[data-role="next-chapter"]') as HTMLButtonElement;
+    this.volumeButton = root.querySelector('[data-role="volume-button"]') as HTMLButtonElement;
+    this.volumeSlider = root.querySelector('[data-role="volume-slider"]') as HTMLInputElement;
+    this.volumePopover = root.querySelector('[data-role="volume-popover"]') as HTMLDivElement;
+    this.volumePanel = root.querySelector('[data-role="volume-panel"]') as HTMLDivElement;
+    this.sleepButton = root.querySelector('[data-role="sleep-button"]') as HTMLButtonElement;
+    this.sleepSelect = root.querySelector('[data-role="sleep-select"]') as HTMLSelectElement;
+    this.sleepStatusEl = root.querySelector('[data-role="sleep-status"]') as HTMLSpanElement;
+    this.sleepPopover = root.querySelector('[data-role="sleep-popover"]') as HTMLDivElement;
+    this.sleepPanel = root.querySelector('[data-role="sleep-panel"]') as HTMLDivElement;
+    this.chapterButton = root.querySelector('[data-role="chapter-button"]') as HTMLButtonElement;
+    this.chapterSelect = root.querySelector('[data-role="chapter-select"]') as HTMLSelectElement;
+    this.chapterPopover = root.querySelector('[data-role="chapter-popover"]') as HTMLDivElement;
+    this.chapterPanel = root.querySelector('[data-role="chapter-panel"]') as HTMLDivElement;
+    this.trackEl = root.querySelector('[data-role="track"]') as PlayerTrackElement;
+    this.statusEl = root.querySelector('[data-role="status"]') as HTMLDivElement;
+    this.audio = root.querySelector('[data-role="audio"]') as HTMLAudioElement;
   }
 
   async connectedCallback() {
@@ -434,18 +403,59 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       this.switchChapter(1);
     });
 
-    this.seekBar.addEventListener('input', () => {
-      this.isSeeking = true;
-      const value = Number(this.seekBar.value);
-      if (Number.isFinite(value)) {
-        this.audio.currentTime = value;
-        this.updateTimeUi();
+    this.trackEl.addEventListener('seek', (event) => {
+      const detail = (event as CustomEvent).detail as { time?: number; isFinal?: boolean };
+      const value = Number(detail?.time);
+      if (!Number.isFinite(value)) {
+        return;
+      }
+      this.isSeeking = !detail?.isFinal;
+      this.audio.currentTime = value;
+      this.updateTimeUi();
+      if (detail?.isFinal) {
+        this.isSeeking = false;
       }
     });
 
-    this.seekBar.addEventListener('change', () => {
-      this.isSeeking = false;
-      this.updateTimeUi();
+    const closeAllPopovers = () => {
+      this.volumePanel.classList.remove('open');
+      this.sleepPanel.classList.remove('open');
+      this.chapterPanel.classList.remove('open');
+    };
+
+    this.volumeButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = this.volumePanel.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) {
+        this.volumePanel.classList.add('open');
+      }
+    });
+
+    this.sleepButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = this.sleepPanel.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) {
+        this.sleepPanel.classList.add('open');
+      }
+    });
+
+    this.chapterButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = this.chapterPanel.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) {
+        this.chapterPanel.classList.add('open');
+      }
+    });
+
+    this.rootEl.addEventListener('click', (event) => {
+      const path = event.composedPath();
+      if (path.includes(this.volumePopover) || path.includes(this.sleepPopover) || path.includes(this.chapterPopover)) {
+        return;
+      }
+      closeAllPopovers();
     });
 
     const storedVolume = this.#readStoredValue('inaudible.player.volume');
@@ -579,7 +589,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       }
       this.audio.load();
       this.statusEl.textContent = '';
-      this.audio.play().catch(() => {});
+      if (this.shouldAutoplay()) {
+        this.audio.play().catch(() => {});
+      }
       this.updateChapterSelect();
       this.updateChapterLabel();
       this.updatePlayButton();
@@ -667,9 +679,17 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.playButton.textContent = this.audio.paused ? 'Play' : 'Pause';
   }
 
+  shouldAutoplay() {
+    const setting = this.getAttribute('autoplay');
+    if (setting === null) {
+      return true;
+    }
+    return setting !== 'false';
+  }
+
   updateChapterLabel() {
     if (!Array.isArray(this.trackList) || this.trackList.length === 0) {
-      this.chapterEl.textContent = 'Chapter unavailable';
+      this.trackEl.setChapterLabel('Chapter unavailable');
       this.prevChapterButton.disabled = true;
       this.nextChapterButton.disabled = true;
       this.updateChapterSelect();
@@ -679,9 +699,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     const track = this.trackList[current];
     const title = track?.title || track?.name || track?.metadata?.title;
     if (title) {
-      this.chapterEl.textContent = `Chapter ${current + 1}: ${title}`;
+      this.trackEl.setChapterLabel(`Chapter ${current + 1}: ${title}`);
     } else {
-      this.chapterEl.textContent = `Chapter ${current + 1} of ${this.trackList.length}`;
+      this.trackEl.setChapterLabel(`Chapter ${current + 1} of ${this.trackList.length}`);
     }
     this.prevChapterButton.disabled = current <= 0;
     this.nextChapterButton.disabled = current >= this.trackList.length - 1;
@@ -718,14 +738,14 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     }
     const duration = Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
     const currentTime = Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0;
-    const remaining = Math.max(duration - currentTime, 0);
     const progress = duration > 0 ? currentTime / duration : 0;
 
-    this.seekBar.max = duration ? String(Math.floor(duration)) : '0';
-    this.seekBar.value = String(Math.floor(currentTime));
-
-    this.positionEl.textContent = `${this.formatTime(currentTime)} (${Math.round(progress * 100)}%)`;
-    this.remainingEl.textContent = `-${this.formatTime(remaining)}`;
+    this.trackEl.updateTime({
+      currentTime,
+      duration,
+      progress,
+    });
+    this.dispatchEvent(new CustomEvent('player-timeupdate', { detail: { currentTime, duration, progress } }));
   }
 
   formatTime(totalSeconds: number) {
@@ -773,7 +793,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.clearSleepTimer();
     this.#sleepMode = 'chapter';
     this.sleepStatusEl.textContent = 'Sleep at chapter end';
-    this.sleepMetaEl.textContent = 'Sleep: chapter';
+    this.trackEl.setSleepLabel('Sleep: chapter');
   }
 
   clearSleepTimer() {
@@ -790,15 +810,13 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     if (this.sleepStatusEl) {
       this.sleepStatusEl.textContent = 'Sleep off';
     }
-    if (this.sleepMetaEl) {
-      this.sleepMetaEl.textContent = '';
-    }
+    this.trackEl.setSleepLabel('');
   }
 
   updateSleepIndicators(seconds: number) {
     const label = `Sleep in ${this.formatTime(seconds)}`;
     this.sleepStatusEl.textContent = label;
-    this.sleepMetaEl.textContent = label;
+    this.trackEl.setSleepLabel(label);
   }
 
   #readStoredValue(key: string) {
@@ -926,7 +944,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       isLocal: true,
     }));
     this.currentTrackIndex = 0;
-    return this.#loadLocalTrack(0);
+    return this.#loadLocalTrack(0, this.shouldAutoplay());
   }
 
   #revokeLocalUrl() {
@@ -936,7 +954,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     }
   }
 
-  #loadLocalTrack(index: number) {
+  #loadLocalTrack(index: number, autoPlay: boolean = true) {
     if (!this.#localDownload?.tracks?.length) {
       return false;
     }
@@ -949,7 +967,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.audio.src = this.#localObjectUrl;
     this.audio.load();
     this.statusEl.textContent = '';
-    this.audio.play().catch(() => {});
+    if (autoPlay) {
+      this.audio.play().catch(() => {});
+    }
     this.updateChapterSelect();
     this.updateChapterLabel();
     this.updatePlayButton();

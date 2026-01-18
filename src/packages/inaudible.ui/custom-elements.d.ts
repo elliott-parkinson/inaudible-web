@@ -5,6 +5,7 @@ declare module 'preact' {
     interface IntrinsicElements {
       'inaudible-audiobook': any;
       'audiobookshelf-player': any;
+      'player-track': any;
     }
   }
 }
