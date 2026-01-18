@@ -35,7 +35,7 @@ const CategoryRow = ({ category, onSelect }: { category: { name: string; books: 
     return (
         <div className="category-row">
             <div className="category-row-header">
-                <h3>{category.name}</h3>
+                <h2>{category.name}</h2>
                 <div className="category-row-actions">
                     <button type="button" onClick={() => scrollBy(-320)} aria-label={`Scroll ${category.name} left`}>
                         &lt;
@@ -78,9 +78,20 @@ export default () => {
                     </ol> }
                 </>
             )}
+            <h2>What's New</h2>
+            { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
+                {latest.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
+						<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
+					</li>)}
+            </ol> }
+            <h2>Discover</h2>
+	        { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
+	            {discover.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
+                    <inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
+                </li>)}
+	        </ol> }
             {categoriesSafe.value.length > 0 && (
                 <>
-                    <h2>Categories</h2>
                     {categoriesSafe.value.map(category => (
                         <CategoryRow
                             key={category.name}
@@ -90,18 +101,7 @@ export default () => {
                     ))}
                 </>
             )}
-	        <h2>Discover</h2>
-	        { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
-	            {discover.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-							<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
-						</li>)}
-	        </ol> }
-            <h2>What's New</h2>
-            { loading.value == true ? <section style={{ textAlign: 'center' }}>Loading... {loading.value}</section> : <ol class="books">
-                {latest.value.map(book => <li key={book.id} onClick={() => location.route(`/books/${book.id}`)}>
-						<inaudible-audiobook libraryItemId={book.id} src={book.pictureUrl} title={book.name} progress={Math.round(((book.progress ?? 0) <= 1 ? (book.progress ?? 0) * 100 : (book.progress ?? 0)))} />
-					</li>)}
-            </ol> }
+	        
         </adw-clamp>
     </>;
 }
