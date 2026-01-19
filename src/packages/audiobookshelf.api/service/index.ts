@@ -24,17 +24,18 @@ export class AudiobookshelfApi {
         createdAt: number;
         permissions: any;
         hasOpenIDLink: boolean;
+        librariesAccessible?: any[];
     };
 
   	public on = this.events.on.bind(this.events);
 
     constructor(baseUrl: string) {
-        this._baseUrl = baseUrl;
+        this._baseUrl = this.normalizeBaseUrl(baseUrl);
         this.loadTokens();
     }
 
     setBaseUrl(baseUrl: string) {
-        this._baseUrl = baseUrl;
+        this._baseUrl = this.normalizeBaseUrl(baseUrl);
     }
 
     reloadTokens() {
@@ -51,6 +52,33 @@ export class AudiobookshelfApi {
 
     loggedIn(): boolean {
         return !!this.accessToken;
+    }
+
+    getLibrariesAccessible(): any[] {
+        return this.user?.librariesAccessible ?? [];
+    }
+
+    async listLibraries(): Promise<any[]> {
+        const response = await fetch(`${this._baseUrl}/audiobookshelf/api/libraries`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${this.accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Libraries fetch failed: ${response.status} ${error}`);
+        }
+
+        const data = await response.json();
+        if (Array.isArray(data?.libraries)) {
+            return data.libraries;
+        }
+        if (Array.isArray(data)) {
+            return data;
+        }
+        return [];
     }
 
     private saveTokens() {
@@ -75,15 +103,30 @@ export class AudiobookshelfApi {
             lastSeen: user.lastSeen,
             createdAt: user.createdAt,
             permissions: user.permissions,
-            hasOpenIDLink: user.hasOpenIDLink
+            hasOpenIDLink: user.hasOpenIDLink,
+            librariesAccessible: user.librariesAccessible ?? []
         }
     }
 
     private loadTokens() {
-    	this._baseUrl = localStorage.getItem("abs_api_baseUrl");
+    	this._baseUrl = this.normalizeBaseUrl(localStorage.getItem("abs_api_baseUrl") ?? "");
         this.accessToken = localStorage.getItem("abs_api_accessToken");
         this.refreshToken = localStorage.getItem("abs_api_refreshToken");
         this.user = JSON.parse(localStorage.getItem("abs_api_user") ?? "{}");
+    }
+
+    private normalizeBaseUrl(baseUrl: string) {
+        if (!baseUrl) {
+            return "";
+        }
+        const trimmed = baseUrl.trim().replace(/\/+$/, "");
+        if (trimmed.endsWith("/audiobookshelf/api")) {
+            return trimmed.replace(/\/audiobookshelf\/api$/, "");
+        }
+        if (trimmed.endsWith("/audiobookshelf")) {
+            return trimmed.replace(/\/audiobookshelf$/, "");
+        }
+        return trimmed;
     }
 
     private async refreshAccessToken(): Promise<void> {
@@ -110,13 +153,14 @@ export class AudiobookshelfApi {
     }
 
     async getServerSettings(baseUrl?: string): Promise<ServerSettings | null> {
-        const targetBaseUrl = (baseUrl ?? this._baseUrl ?? "").replace(/\/+$/, "");
+        const targetBaseUrl = this.normalizeBaseUrl(baseUrl ?? this._baseUrl ?? "").replace(/\/+$/, "");
         if (!targetBaseUrl) {
             return null;
         }
 
         const response = await fetch(`${targetBaseUrl}/audiobookshelf/api/server-settings`, {
             method: "GET",
+            headers: this.accessToken ? { "Authorization": `Bearer ${this.accessToken}` } : undefined,
         });
 
         if (!response.ok) {
@@ -133,7 +177,7 @@ export class AudiobookshelfApi {
         baseUrl?: string,
     ): Promise<Login.Response> {
 	    if (baseUrl) {
-	        this._baseUrl = baseUrl;
+	        this._baseUrl = this.normalizeBaseUrl(baseUrl);
 	    }
         const response = await fetch(`${this._baseUrl}/audiobookshelf/login`, {
             method: 'POST',

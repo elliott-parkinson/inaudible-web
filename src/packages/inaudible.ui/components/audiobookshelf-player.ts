@@ -5,6 +5,137 @@ import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
 import type { DownloadsStore } from "../../inaudible.model/store/downloads-store";
 
+const css = html`
+  <style>
+    :host {
+      display: block;
+    }
+    .player {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9em;
+    }
+    .player-main {
+      display: grid;
+      grid-template-columns: minmax(90px, 140px) 1fr;
+      gap: 1em;
+      align-items: center;
+    }
+    .player-cover {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 0.6em;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+      background: #e6e6e6;
+    }
+    .player-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8em;
+    }
+    .player-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.6em;
+      flex-wrap: wrap;
+    }
+    .player-buttons button {
+      border: 1px solid #d1d1d1;
+      background: #fff;
+      padding: 0.5em 0.8em;
+      border-radius: 0.6em;
+      cursor: pointer;
+    }
+    .player-buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .player-play {
+      font-size: 1.1em;
+      padding: 0.75em 1.4em;
+      border-radius: 999px;
+      border: none;
+      background: #1d1d1d;
+      color: #fff;
+      min-width: 120px;
+    }
+    .player-status {
+      font-size: 0.9em;
+      color: #666;
+    }
+    .player-bottom-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.8em;
+      flex-wrap: wrap;
+      margin-top: 0.2em;
+    }
+    .player-popover {
+      position: relative;
+    }
+    .player-popover > button {
+      border: 1px solid #d1d1d1;
+      background: #fff;
+      padding: 0.5em 0.8em;
+      border-radius: 0.6em;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .player-popover-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.4em);
+      background: #fff;
+      border: 1px solid #e2e2e2;
+      border-radius: 0.6em;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      padding: 0.7em;
+      min-width: 200px;
+      z-index: 2;
+      display: none;
+    }
+    .player-popover-panel.open {
+      display: block;
+    }
+    .player-popover-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35em;
+      font-size: 0.8em;
+      color: #666;
+    }
+    .player-popover-panel input[type="range"] {
+      width: 100%;
+    }
+    .player-popover-panel select,
+    .player-popover-panel input[type="range"] {
+      border: 1px solid #d1d1d1;
+      border-radius: 0.45em;
+      padding: 0.35em 0.5em;
+      font-size: 0.95em;
+      background: #fff;
+    }
+    .player-sleep-status {
+      font-size: 0.75em;
+      color: #888;
+    }
+    @media (max-width: 640px) {
+      .player-bottom-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .player-popover-panel {
+        left: 0;
+        right: auto;
+        width: 100%;
+      }
+    }
+    audio {
+      display: none;
+    }
+  </style>`;
+
 class AudiobookshelfPlayerElement extends HTMLElement {
   audio: HTMLAudioElement;
   mediaItemId: string | null;
@@ -104,135 +235,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
 
     render(
       html`
-        <style>
-          :host {
-            display: block;
-          }
-          .player {
-            display: flex;
-            flex-direction: column;
-            gap: 0.9em;
-          }
-          .player-main {
-            display: grid;
-            grid-template-columns: minmax(90px, 140px) 1fr;
-            gap: 1em;
-            align-items: center;
-          }
-          .player-cover {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            object-fit: cover;
-            border-radius: 0.6em;
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-            background: #e6e6e6;
-          }
-          .player-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 0.8em;
-          }
-          .player-buttons {
-            display: flex;
-            align-items: center;
-            gap: 0.6em;
-            flex-wrap: wrap;
-          }
-          .player-buttons button {
-            border: 1px solid #d1d1d1;
-            background: #fff;
-            padding: 0.5em 0.8em;
-            border-radius: 0.6em;
-            cursor: pointer;
-          }
-          .player-buttons button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-          .player-play {
-            font-size: 1.1em;
-            padding: 0.75em 1.4em;
-            border-radius: 999px;
-            border: none;
-            background: #1d1d1d;
-            color: #fff;
-            min-width: 120px;
-          }
-          .player-status {
-            font-size: 0.9em;
-            color: #666;
-          }
-          .player-bottom-bar {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.8em;
-            flex-wrap: wrap;
-            margin-top: 0.2em;
-          }
-          .player-popover {
-            position: relative;
-          }
-          .player-popover > button {
-            border: 1px solid #d1d1d1;
-            background: #fff;
-            padding: 0.5em 0.8em;
-            border-radius: 0.6em;
-            cursor: pointer;
-            font-weight: 600;
-          }
-          .player-popover-panel {
-            position: absolute;
-            right: 0;
-            top: calc(100% + 0.4em);
-            background: #fff;
-            border: 1px solid #e2e2e2;
-            border-radius: 0.6em;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            padding: 0.7em;
-            min-width: 200px;
-            z-index: 2;
-            display: none;
-          }
-          .player-popover-panel.open {
-            display: block;
-          }
-          .player-popover-panel label {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35em;
-            font-size: 0.8em;
-            color: #666;
-          }
-          .player-popover-panel input[type="range"] {
-            width: 100%;
-          }
-          .player-popover-panel select,
-          .player-popover-panel input[type="range"] {
-            border: 1px solid #d1d1d1;
-            border-radius: 0.45em;
-            padding: 0.35em 0.5em;
-            font-size: 0.95em;
-            background: #fff;
-          }
-          .player-sleep-status {
-            font-size: 0.75em;
-            color: #888;
-          }
-          @media (max-width: 640px) {
-            .player-bottom-bar {
-              flex-direction: column;
-              align-items: stretch;
-            }
-            .player-popover-panel {
-              left: 0;
-              right: auto;
-              width: 100%;
-            }
-          }
-          audio {
-            display: none;
-          }
-        </style>
+        ${css}
         <div class="player" data-role="root">
           <div class="player-main">
             <img class="player-cover" data-role="cover" alt="Book cover" />

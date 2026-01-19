@@ -1,17 +1,17 @@
-import { AudiobookshelfApi } from "./packages/audiobookshelf.api/service";
-import { Libraries } from "./packages/audiobookshelf.api/service/libraries";
-import { AudiobookshelfMeApi } from "./packages/audiobookshelf.api/service/me";
-import { AudiobookStore } from "./packages/inaudible.model/store";
-import { AuthorStore } from "./packages/inaudible.model/store/authors-store";
-import { BookStore } from "./packages/inaudible.model/store/books-store";
-import { DownloadsStore } from "./packages/inaudible.model/store/downloads-store";
-import { MyLibraryStore } from "./packages/inaudible.model/store/my-library-store";
-import { ProgressStore } from "./packages/inaudible.model/store/progress-store";
-import { SeriesStore } from "./packages/inaudible.model/store/series-store";
-import { InaudibleService } from "./packages/inaudible.service";
+import { AudiobookshelfApi } from "../audiobookshelf.api/service";
+import { Libraries } from "../audiobookshelf.api/service/libraries";
+import { AudiobookshelfMeApi } from "../audiobookshelf.api/service/me";
+import { AudiobookStore } from "../inaudible.model/store";
+import { AuthorStore } from "../inaudible.model/store/authors-store";
+import { BookStore } from "../inaudible.model/store/books-store";
+import { DownloadsStore } from "../inaudible.model/store/downloads-store";
+import { MyLibraryStore } from "../inaudible.model/store/my-library-store";
+import { ProgressStore } from "../inaudible.model/store/progress-store";
+import { SeriesStore } from "../inaudible.model/store/series-store";
+import { InaudibleService } from "../inaudible.service";
 
 export const container = new Map<string, object>;
-
+export type Container = typeof container;
 
 
 export const init = async () => {
@@ -21,7 +21,6 @@ export const init = async () => {
     const service = new InaudibleService(container);
     await store.init();
 
-    container.set("inaudible.worker", new Worker(new URL("./packages/inaudible.worker/index.ts", import.meta.url), { type: "module" }));
     container.set("audiobookshelf.api", api);
     container.set("audiobookshelf.api.libraries", new Libraries(api));
     container.set("audiobookshelf.api.me", new AudiobookshelfMeApi(api));
