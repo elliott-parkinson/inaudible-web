@@ -101,7 +101,7 @@ export const LoginDialog = ({
                 {step === 'login' ? 'Inaudible Login' : 'First Sync'}
                 <section></section>
             </adw-header>
-            <form id="login-form" class="stack wide" slot="body">
+            <form id="login-form" class="stack wide" slot="body" onSubmit={() => login()}>
                 {step === 'login' ? (
                     <>
                         <p>Please enter your audiobookshelf credentials to login.</p>
