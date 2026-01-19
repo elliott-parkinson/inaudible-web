@@ -325,7 +325,7 @@ const App = () => {
 			Inaudible
 			<section>
 				<button title="sync" disabled={auth.loggedIn.value ? true : undefined}>
-					<adw-icon onClick={e => synchronize(auth.selectedLibraryId.value)}><img src={arrowsRotate} alt="sync" /></adw-icon>
+					<adw-icon title="sync" onClick={e => synchronize(auth.selectedLibraryId.value)}><img src={arrowsRotate} alt="sync" /></adw-icon>
 				</button>
 			</section>
 		</adw-header>
