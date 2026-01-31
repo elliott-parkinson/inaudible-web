@@ -4,6 +4,7 @@ import type { PlayerTrackElement } from "./player-track";
 import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
 import type { DownloadsStore } from "../../inaudible.model/store/downloads-store";
+import { AudiobookPlayer } from "./audiobook-player/audiobook-player";
 
 const css = html`
   <style>
@@ -136,6 +137,7 @@ const css = html`
     }
   </style>`;
 
+
 class AudiobookshelfPlayerElement extends HTMLElement {
   audio: HTMLAudioElement;
   mediaItemId: string | null;
@@ -144,12 +146,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   coverUrl: string | null;
   startPosition: number;
   statusEl: HTMLDivElement;
-  controller: AbortController | null;
   lastProgressSentAt: number;
-  trackList: Array<any>;
-  currentTrackIndex: number;
-  sessionId: string | null;
-  sessionBase: string | null;
   isSeeking: boolean;
   rootEl: HTMLDivElement;
   coverEl: HTMLImageElement;
@@ -184,8 +181,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   #sleepEndsAt: number | null;
   #sleepMode: 'off' | 'timer' | 'chapter';
   #downloadsStore: DownloadsStore | null;
-  #localObjectUrl: string | null;
-  #localDownload: { tracks: Array<{ index: number; title: string; size: number; blob: Blob }> } | null;
+  #player: AudiobookPlayer;
 
   constructor() {
     super();
@@ -199,12 +195,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.baseUrl = null;
     this.coverUrl = null;
     this.startPosition = 0;
-    this.controller = null;
     this.lastProgressSentAt = 0;
-    this.trackList = [];
-    this.currentTrackIndex = 0;
-    this.sessionId = null;
-    this.sessionBase = null;
     this.isSeeking = false;
     this.#progressService = null;
     this.#progressSubscriptionTarget = null;
@@ -218,8 +209,20 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     this.#sleepEndsAt = null;
     this.#sleepMode = 'off';
     this.#downloadsStore = null;
-    this.#localObjectUrl = null;
-    this.#localDownload = null;
+    this.#player = new AudiobookPlayer(this.audio, this.statusEl, {
+      shouldAutoplay: () => this.shouldAutoplay(),
+      onChapterUpdate: () => {
+        this.updateChapterSelect();
+        this.updateChapterLabel();
+      },
+      onPlaybackUpdate: () => {
+        this.updatePlayButton();
+        this.updateTimeUi();
+      },
+      onProgress: (force) => {
+        this.maybeSendProgress(force);
+      },
+    });
   }
 
   #renderTemplate() {
@@ -340,6 +343,11 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       this.statusEl.textContent = 'Missing playback settings.';
       return;
     }
+    this.#player.configure({
+      mediaItemId: this.mediaItemId,
+      apiKey: this.apiKey,
+      baseUrl: this.baseUrl,
+    });
 
     this.#ensureProgressService();
     this.#ensureDownloadsStore();
@@ -517,165 +525,26 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   }
 
   disconnectedCallback() {
-    if (this.controller) {
-      this.controller.abort();
-      this.controller = null;
-    }
+    this.#player.abort();
     this.#teardownProgressSubscription();
     this.clearSleepTimer();
-    this.#revokeLocalUrl();
+    this.#player.revokeLocalUrl();
   }
 
   async startStream() {
-    if (!this.mediaItemId || !this.apiKey || !this.baseUrl) {
-      return;
-    }
-    
-    const apiBase = this.normalizeApiBase(this.baseUrl);
-    const streamUrl = `${apiBase}/items/${this.mediaItemId}/play?token=${encodeURIComponent(this.apiKey)}`;
-    this.controller = new AbortController();
-    try {
-      const response = await fetch(streamUrl, {
-        method: 'POST',
-        signal: this.controller?.signal,
-      });
-
-      if (!response.ok) {
-        this.statusEl.textContent = `Playback failed: ${response.status} ${response.statusText}`;
-        return;
-      }
-
-      const data = await response.json();
-      const trackCandidates =
-        data?.libraryItem?.media?.tracks ||
-        data?.media?.tracks ||
-        data?.audioTracks ||
-        data?.mediaMetadata?.audioTracks ||
-        [];
-
-      this.trackList = Array.isArray(trackCandidates) ? trackCandidates : [];
-
-      const pickTrack = (tracks: Array<any>) => {
-        if (!Array.isArray(tracks)) {
-          return null;
-        }
-        const nonHls = tracks.find((track) => track?.contentUrl && !track.contentUrl.includes('/hls/'));
-        return nonHls ?? tracks.find((track) => track?.contentUrl) ?? null;
-      };
-
-      const pickedTrack = pickTrack(trackCandidates);
-      const contentUrl = pickedTrack?.contentUrl;
-      this.currentTrackIndex = Math.max(0, this.trackList.findIndex((track) => track?.contentUrl === contentUrl));
-
-      if (contentUrl) {
-        const absoluteUrl = this.resolveContentUrl(apiBase, contentUrl, this.apiKey);
-        this.audio.src = absoluteUrl;
-      } else {
-        const sessionId = data?.id;
-        const trackIndex =
-          data?.audioTracks?.[0]?.index ??
-          data?.mediaMetadata?.audioTracks?.[0]?.index ??
-          data?.libraryItem?.media?.tracks?.[0]?.index ??
-          1;
-
-        if (!sessionId) {
-          this.statusEl.textContent = 'Playback failed: missing session id.';
-          return;
-        }
-
-        const sessionBase = apiBase.replace(/\/api$/, '');
-        const sessionUrl = `${sessionBase}/public/session/${sessionId}/track/${trackIndex}`;
-        this.sessionId = sessionId;
-        this.sessionBase = sessionBase;
-        this.currentTrackIndex = Math.max(0, this.trackList.findIndex((track) => track?.index === trackIndex));
-        this.audio.src = sessionUrl;
-      }
-      this.audio.load();
-      this.statusEl.textContent = '';
-      if (this.shouldAutoplay()) {
-        this.audio.play().catch(() => {});
-      }
-      this.updateChapterSelect();
-      this.updateChapterLabel();
-      this.updatePlayButton();
-      this.updateTimeUi();
-      this.maybeSendProgress(true);
-    } catch (error) {
-      if (!this.controller?.signal.aborted) {
-        console.error('audiobookshelf stream error', error);
-        this.statusEl.textContent = 'Playback failed while streaming.';
-      }
-    }
-  }
-
-  normalizeApiBase(baseUrl: string): string {
-    const trimmed = baseUrl.replace(/\/+$/, '');
-    if (trimmed.endsWith('/audiobookshelf/api')) {
-      return trimmed;
-    }
-    if (trimmed.endsWith('/audiobookshelf')) {
-      return `${trimmed}/api`;
-    }
-    return `${trimmed}/audiobookshelf/api`;
-  }
-
-  resolveContentUrl(apiBase: string, contentUrl: string, token: string): string {
-    const origin = apiBase.replace(/\/api$/, '');
-    const url = contentUrl.startsWith('http') ? contentUrl : `${origin}${contentUrl}`;
-    if (url.includes('token=')) {
-      return url;
-    }
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}token=${encodeURIComponent(token)}`;
+    await this.#player.startStream();
   }
 
   seekBy(offsetSeconds: number) {
-    const duration = Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
-    const currentTime = Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0;
-    const nextTime = Math.min(Math.max(currentTime + offsetSeconds, 0), duration || currentTime + offsetSeconds);
-    this.audio.currentTime = nextTime;
-    this.updateTimeUi();
+    this.#player.seekBy(offsetSeconds);
   }
 
   switchChapter(offset: number) {
-    if (!Array.isArray(this.trackList) || this.trackList.length === 0) {
-      return;
-    }
-    this.playTrackAtIndex(this.currentTrackIndex + offset);
+    this.#player.switchChapter(offset);
   }
 
   playTrackAtIndex(nextIndex: number) {
-    if (!Array.isArray(this.trackList) || this.trackList.length === 0) {
-      return;
-    }
-    if (nextIndex < 0 || nextIndex >= this.trackList.length) {
-      return;
-    }
-    if (this.#localDownload?.tracks?.length) {
-      const loaded = this.#loadLocalTrack(nextIndex);
-      if (loaded) {
-        this.currentTrackIndex = nextIndex;
-      }
-      return;
-    }
-    const track = this.trackList[nextIndex];
-    const contentUrl = track?.contentUrl;
-    if (contentUrl) {
-      const apiBase = this.normalizeApiBase(this.baseUrl ?? '');
-      this.audio.src = this.resolveContentUrl(apiBase, contentUrl, this.apiKey ?? '');
-    } else if (this.sessionId && this.sessionBase) {
-      const trackIndex = track?.index ?? nextIndex + 1;
-      this.audio.src = `${this.sessionBase}/public/session/${this.sessionId}/track/${trackIndex}`;
-    } else {
-      return;
-    }
-    this.currentTrackIndex = nextIndex;
-    this.audio.load();
-    this.audio.play().catch(() => {});
-    this.updateChapterSelect();
-    this.updateChapterLabel();
-    this.updatePlayButton();
-    this.updateTimeUi();
+    this.#player.playTrackAtIndex(nextIndex);
   }
 
   updatePlayButton() {
@@ -691,23 +560,26 @@ class AudiobookshelfPlayerElement extends HTMLElement {
   }
 
   updateChapterLabel() {
-    if (!Array.isArray(this.trackList) || this.trackList.length === 0) {
+    if (!Array.isArray(this.#player.trackList) || this.#player.trackList.length === 0) {
       this.trackEl.setChapterLabel('Chapter unavailable');
       this.prevChapterButton.disabled = true;
       this.nextChapterButton.disabled = true;
       this.updateChapterSelect();
       return;
     }
-    const current = Math.min(Math.max(this.currentTrackIndex, 0), this.trackList.length - 1);
-    const track = this.trackList[current];
+    const current = Math.min(
+      Math.max(this.#player.currentTrackIndex, 0),
+      this.#player.trackList.length - 1
+    );
+    const track = this.#player.trackList[current];
     const title = track?.title || track?.name || track?.metadata?.title;
     if (title) {
       this.trackEl.setChapterLabel(`Chapter ${current + 1}: ${title}`);
     } else {
-      this.trackEl.setChapterLabel(`Chapter ${current + 1} of ${this.trackList.length}`);
+      this.trackEl.setChapterLabel(`Chapter ${current + 1} of ${this.#player.trackList.length}`);
     }
     this.prevChapterButton.disabled = current <= 0;
-    this.nextChapterButton.disabled = current >= this.trackList.length - 1;
+    this.nextChapterButton.disabled = current >= this.#player.trackList.length - 1;
     this.updateChapterSelect();
   }
 
@@ -716,7 +588,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       return;
     }
     this.chapterSelect.innerHTML = '';
-    if (!Array.isArray(this.trackList) || this.trackList.length === 0) {
+    if (!Array.isArray(this.#player.trackList) || this.#player.trackList.length === 0) {
       const option = document.createElement('option');
       option.value = '-1';
       option.textContent = 'Chapters unavailable';
@@ -724,7 +596,7 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       this.chapterSelect.disabled = true;
       return;
     }
-    this.trackList.forEach((track, index) => {
+    this.#player.trackList.forEach((track, index) => {
       const option = document.createElement('option');
       option.value = String(index);
       const title = track?.title || track?.name || track?.metadata?.title;
@@ -732,7 +604,9 @@ class AudiobookshelfPlayerElement extends HTMLElement {
       this.chapterSelect.appendChild(option);
     });
     this.chapterSelect.disabled = false;
-    this.chapterSelect.value = String(Math.min(Math.max(this.currentTrackIndex, 0), this.trackList.length - 1));
+    this.chapterSelect.value = String(
+      Math.min(Math.max(this.#player.currentTrackIndex, 0), this.#player.trackList.length - 1)
+    );
   }
 
   updateTimeUi() {
@@ -940,49 +814,10 @@ class AudiobookshelfPlayerElement extends HTMLElement {
     if (!download?.tracks?.length) {
       return false;
     }
-    this.#localDownload = download;
-    this.trackList = download.tracks.map((track) => ({
-      title: track.title,
-      index: track.index,
-      isLocal: true,
-    }));
-    this.currentTrackIndex = 0;
-    return this.#loadLocalTrack(0, this.shouldAutoplay());
-  }
-
-  #revokeLocalUrl() {
-    if (this.#localObjectUrl) {
-      URL.revokeObjectURL(this.#localObjectUrl);
-      this.#localObjectUrl = null;
-    }
-  }
-
-  #loadLocalTrack(index: number, autoPlay: boolean = true) {
-    if (!this.#localDownload?.tracks?.length) {
-      return false;
-    }
-    if (index < 0 || index >= this.#localDownload.tracks.length) {
-      return false;
-    }
-    const track = this.#localDownload.tracks[index];
-    this.#revokeLocalUrl();
-    this.#localObjectUrl = URL.createObjectURL(track.blob);
-    this.audio.src = this.#localObjectUrl;
-    this.audio.load();
-    this.statusEl.textContent = '';
-    if (autoPlay) {
-      this.audio.play().catch(() => {});
-    }
-    this.updateChapterSelect();
-    this.updateChapterLabel();
-    this.updatePlayButton();
-    this.updateTimeUi();
-    this.maybeSendProgress(true);
-    return true;
+    return this.#player.loadLocalDownload(download, this.shouldAutoplay());
   }
 
   maybeSendProgress(force: boolean) {
-
     const now = Date.now();
     if (!force && now - this.lastProgressSentAt < 5000) {
       return;
