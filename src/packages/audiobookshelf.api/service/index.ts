@@ -159,9 +159,9 @@ export class AudiobookshelfApi {
         }
 
         const endpoints = [
-            { path: "/audiobookshelf/api/server-settings", auth: true },
             { path: "/audiobookshelf/api/server-settings/public", auth: false },
             { path: "/audiobookshelf/api/public/server-settings", auth: false },
+            { path: "/audiobookshelf/api/server-settings", auth: true },
         ];
 
         let lastStatus = 0;
@@ -169,10 +169,18 @@ export class AudiobookshelfApi {
 
         for (const endpoint of endpoints) {
             const headers = endpoint.auth && this.accessToken ? { "Authorization": `Bearer ${this.accessToken}` } : undefined;
-            const response = await fetch(`${targetBaseUrl}${endpoint.path}`, {
-                method: "GET",
-                headers,
-            });
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+            let response: Response;
+            try {
+                response = await fetch(`${targetBaseUrl}${endpoint.path}`, {
+                    method: "GET",
+                    headers,
+                    signal: controller.signal,
+                });
+            } finally {
+                window.clearTimeout(timeoutId);
+            }
             if (response.ok) {
                 return response.json();
             }

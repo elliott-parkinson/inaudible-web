@@ -3,9 +3,9 @@ import type { LibraryItem } from "../../audiobookshelf.api/interfaces/model/libr
 import type { LibrarySeries } from "../../audiobookshelf.api/interfaces/model/library-series";
 import type { AudiobookshelfApi } from "../../audiobookshelf.api/service";
 
-import type { StoredSeries } from "../../inaudible.model/interfaces/stored-series";
-import type { StoredAuthor } from "../../inaudible.model/interfaces/stored-author";
-import type { StoredBook } from "../../inaudible.model/interfaces/stored-book";
+import type { StoredSeries } from "../../inaudible.store/interfaces/stored-series";
+import type { StoredAuthor } from "../../inaudible.store/interfaces/stored-author";
+import type { StoredBook } from "../../inaudible.store/interfaces/stored-book";
 
 export class AudiobookshelfToInaudibleDataAdapter {
     _container: Map<string, object>;

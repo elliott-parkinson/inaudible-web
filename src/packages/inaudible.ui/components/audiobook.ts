@@ -1,7 +1,7 @@
 import { container } from "../../../container";
 import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
-import type { MyLibraryStore } from "../../inaudible.model/store/my-library-store";
+import type { MyLibraryStore } from "../../inaudible.store/store/my-library-store";
 
 class AudiobookElement extends HTMLElement {
     static get observedAttributes() {

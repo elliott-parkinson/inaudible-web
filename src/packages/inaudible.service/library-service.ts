@@ -1,11 +1,11 @@
 import { buildApiUrl } from "./helper/api-url";
 import type { AudiobookshelfApi } from "../audiobookshelf.api/service";
-import type { AuthorStore } from "../inaudible.model/store/authors-store";
-import type { BookStore } from "../inaudible.model/store/books-store";
-import type { DownloadsStore } from "../inaudible.model/store/downloads-store";
-import type { MyLibraryStore } from "../inaudible.model/store/my-library-store";
-import type { ProgressStore } from "../inaudible.model/store/progress-store";
-import type { SeriesStore } from "../inaudible.model/store/series-store";
+import type { AuthorStore } from "../inaudible.store/store/authors-store";
+import type { BookStore } from "../inaudible.store/store/books-store";
+import type { DownloadsStore } from "../inaudible.store/store/downloads-store";
+import type { MyLibraryStore } from "../inaudible.store/store/my-library-store";
+import type { ProgressStore } from "../inaudible.store/store/progress-store";
+import type { SeriesStore } from "../inaudible.store/store/series-store";
 import type { AuthorItem, Book, BookItem, SeriesItem } from "./types/library";
 
 export class LibraryService {

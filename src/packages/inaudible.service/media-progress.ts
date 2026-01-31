@@ -1,5 +1,5 @@
 import type { AudiobookshelfMeApi } from "../audiobookshelf.api/service/me";
-import type { MyLibraryStore } from "../inaudible.model/store/my-library-store";
+import type { MyLibraryStore } from "../inaudible.store/store/my-library-store";
 
 
 export class InaudibleMediaProgressService extends EventTarget {

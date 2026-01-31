@@ -3,7 +3,7 @@ import { html, render } from "lit-html";
 import type { PlayerTrackElement } from "./player-track";
 import type { InaudibleService } from "../../inaudible.service";
 import type { InaudibleMediaProgressService } from "../../inaudible.service/media-progress";
-import type { DownloadsStore } from "../../inaudible.model/store/downloads-store";
+import type { DownloadsStore } from "../../inaudible.store/store/downloads-store";
 import { AudiobookPlayer } from "./audiobook-player/audiobook-player";
 
 const css = html`

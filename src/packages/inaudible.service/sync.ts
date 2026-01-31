@@ -3,9 +3,9 @@ import type { LibraryItem } from "../audiobookshelf.api/interfaces/model/library
 import type { LibrarySeries } from "../audiobookshelf.api/interfaces/model/library-series";
 import type { AudiobookshelfApi } from "../audiobookshelf.api/service";
 import type { Libraries } from "../audiobookshelf.api/service/libraries";
-import type { AuthorStore } from "../inaudible.model/store/authors-store";
-import type { BookStore } from "../inaudible.model/store/books-store";
-import type { SeriesStore } from "../inaudible.model/store/series-store";
+import type { AuthorStore } from "../inaudible.store/store/authors-store";
+import type { BookStore } from "../inaudible.store/store/books-store";
+import type { SeriesStore } from "../inaudible.store/store/series-store";
 import { AudiobookshelfToInaudibleDataAdapter } from "./helper/data-adapter";
 
 

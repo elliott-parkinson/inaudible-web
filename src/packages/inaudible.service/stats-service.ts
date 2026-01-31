@@ -1,6 +1,6 @@
 import type { AudiobookshelfMeApi } from "../audiobookshelf.api/service/me";
 import type { MeListeningStats } from "../audiobookshelf.api/interfaces/api/me-listening-stats";
-import type { StatsStore } from "../inaudible.model/store/stats-store";
+import type { StatsStore } from "../inaudible.store/store/stats-store";
 
 export class StatsService {
     private container: Map<string, object>;

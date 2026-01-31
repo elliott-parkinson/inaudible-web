@@ -1,6 +1,6 @@
 import { signal } from "@preact/signals";
 import { container } from "../../../container";
-import type { StoredDownload } from "../../inaudible.model/interfaces/stored-download";
+import type { StoredDownload } from "../../inaudible.store/interfaces/stored-download";
 import type { BookItem } from "./books";
 import type { SeriesItem } from "./series";
 import type { InaudibleService } from "../../inaudible.service";

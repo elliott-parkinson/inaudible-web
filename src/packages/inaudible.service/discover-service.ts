@@ -1,7 +1,7 @@
 import { buildApiUrl } from "./helper/api-url";
 import type { BookItem } from "./types/library";
-import type { BookStore } from "../inaudible.model/store/books-store";
-import type { ProgressStore } from "../inaudible.model/store/progress-store";
+import type { BookStore } from "../inaudible.store/store/books-store";
+import type { ProgressStore } from "../inaudible.store/store/progress-store";
 import type { AudiobookshelfApi } from "../audiobookshelf.api/service";
 
 export class DiscoverService {

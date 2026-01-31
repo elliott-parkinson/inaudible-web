@@ -1,10 +1,10 @@
 import type { AudiobookshelfApi } from "../audiobookshelf.api/service";
 import type { MediaProgress } from "../audiobookshelf.api/interfaces/model/media-progress";
-import type { DownloadsStore } from "../inaudible.model/store/downloads-store";
-import type { MyLibraryStore } from "../inaudible.model/store/my-library-store";
-import type { ProgressStore } from "../inaudible.model/store/progress-store";
-import type { SeriesStore } from "../inaudible.model/store/series-store";
-import type { BookStore } from "../inaudible.model/store/books-store";
+import type { DownloadsStore } from "../inaudible.store/store/downloads-store";
+import type { MyLibraryStore } from "../inaudible.store/store/my-library-store";
+import type { ProgressStore } from "../inaudible.store/store/progress-store";
+import type { SeriesStore } from "../inaudible.store/store/series-store";
+import type { BookStore } from "../inaudible.store/store/books-store";
 import type { BookItem, SeriesItem } from "./types/library";
 import { buildApiUrl } from "./helper/api-url";
 import type { InaudibleMediaProgressService } from "./media-progress";

@@ -1,14 +1,14 @@
 import { AudiobookshelfApi } from "./packages/audiobookshelf.api/service";
 import { Libraries } from "./packages/audiobookshelf.api/service/libraries";
 import { AudiobookshelfMeApi } from "./packages/audiobookshelf.api/service/me";
-import { AudiobookStore } from "./packages/inaudible.model/store";
-import { AuthorStore } from "./packages/inaudible.model/store/authors-store";
-import { BookStore } from "./packages/inaudible.model/store/books-store";
-import { DownloadsStore } from "./packages/inaudible.model/store/downloads-store";
-import { MyLibraryStore } from "./packages/inaudible.model/store/my-library-store";
-import { ProgressStore } from "./packages/inaudible.model/store/progress-store";
-import { SeriesStore } from "./packages/inaudible.model/store/series-store";
-import { StatsStore } from "./packages/inaudible.model/store/stats-store";
+import { AudiobookStore } from "./packages/inaudible.store/store";
+import { AuthorStore } from "./packages/inaudible.store/store/authors-store";
+import { BookStore } from "./packages/inaudible.store/store/books-store";
+import { DownloadsStore } from "./packages/inaudible.store/store/downloads-store";
+import { MyLibraryStore } from "./packages/inaudible.store/store/my-library-store";
+import { ProgressStore } from "./packages/inaudible.store/store/progress-store";
+import { SeriesStore } from "./packages/inaudible.store/store/series-store";
+import { StatsStore } from "./packages/inaudible.store/store/stats-store";
 import { InaudibleService } from "./packages/inaudible.service";
 
 export const container = new Map<string, object>;
