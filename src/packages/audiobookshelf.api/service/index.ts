@@ -158,16 +158,33 @@ export class AudiobookshelfApi {
             return null;
         }
 
-        const response = await fetch(`${targetBaseUrl}/audiobookshelf/api/server-settings`, {
-            method: "GET",
-            headers: this.accessToken ? { "Authorization": `Bearer ${this.accessToken}` } : undefined,
-        });
+        const endpoints = [
+            { path: "/audiobookshelf/api/server-settings", auth: true },
+            { path: "/audiobookshelf/api/server-settings/public", auth: false },
+            { path: "/audiobookshelf/api/public/server-settings", auth: false },
+        ];
 
-        if (!response.ok) {
-            return null;
+        let lastStatus = 0;
+        let lastError = "";
+
+        for (const endpoint of endpoints) {
+            const headers = endpoint.auth && this.accessToken ? { "Authorization": `Bearer ${this.accessToken}` } : undefined;
+            const response = await fetch(`${targetBaseUrl}${endpoint.path}`, {
+                method: "GET",
+                headers,
+            });
+            if (response.ok) {
+                return response.json();
+            }
+
+            lastStatus = response.status;
+            lastError = await response.text();
+            if (![401, 403, 404].includes(response.status)) {
+                break;
+            }
         }
 
-        return response.json();
+        throw new Error(`Server settings failed: ${lastStatus} ${lastError}`);
     }
 
 

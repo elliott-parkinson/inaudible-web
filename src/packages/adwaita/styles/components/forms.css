@@ -7,7 +7,18 @@ form {
         display: flex;
         flex-direction: column;
 
-        > p {
+        > fieldset {
+            border: 0;
+            padding: 0;
+            margin: 0;
+            min-inline-size: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        > p,
+        > fieldset > p {
             padding: 0.5em;
             display: flex;
             flex-direction: row;
@@ -18,7 +29,8 @@ form {
             align-items: center;
         }
 
-        > label {
+        > label,
+        > fieldset > label {
             padding: 0.5em;
             display: flex;
             flex-direction: row;
@@ -55,7 +67,10 @@ form {
     }
 
     &.wide {
-	    > label, p {
+	    > label,
+        > p,
+        > fieldset > label,
+        > fieldset > p {
 			&::before {
 		        content: attr(data-label);
 		        display: inline-block;

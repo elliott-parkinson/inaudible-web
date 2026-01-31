@@ -1,7 +1,7 @@
 import { signal } from "@preact/signals";
 import { container } from "../../../container";
-import type { AudiobookshelfMeApi } from "../../audiobookshelf.api/service/me";
 import type { MeListeningStats } from "../../audiobookshelf.api/interfaces/api/me-listening-stats";
+import type { InaudibleService } from "../../inaudible.service";
 
 export const listeningStats = () => {
     const data = signal<MeListeningStats.Response | null>(null);
@@ -14,13 +14,35 @@ export const listeningStats = () => {
         data.value = null;
 
         try {
-            const meApi = container.get("audiobookshelf.api.me") as AudiobookshelfMeApi;
-            const stats = await meApi.listeningStats();
-            data.value = stats ?? null;
+            const inaudible = container.get("inaudible.service") as InaudibleService;
+            const cached = await inaudible.stats.getListeningStatsCached();
+            if (cached) {
+                data.value = cached;
+                loading.value = false;
+            }
+            const refresh = async () => {
+                try {
+                    const stats = await inaudible.stats.refreshListeningStats();
+                    if (stats) {
+                        data.value = stats;
+                    }
+                } catch (err) {
+                    if (!data.value) {
+                        error.value = err instanceof Error ? err.message : "Failed to load stats";
+                    }
+                } finally {
+                    if (loading.value) {
+                        loading.value = false;
+                    }
+                }
+            };
+            void refresh();
         } catch (err) {
             error.value = err instanceof Error ? err.message : "Failed to load stats";
         } finally {
-            loading.value = false;
+            if (loading.value) {
+                loading.value = false;
+            }
         }
     };
 

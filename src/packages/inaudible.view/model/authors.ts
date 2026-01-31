@@ -1,19 +1,10 @@
-import { type Signal, signal } from "@preact/signals";
+import { signal } from "@preact/signals";
 import { container } from "../../../container";
-import type { BookStore } from "src/packages/inaudible.model/store/books-store";
-import type { AuthorStore } from "src/packages/inaudible.model/store/authors-store";
+import type { InaudibleService } from "../../inaudible.service";
 import type { SeriesItem } from "./series";
-import type { SeriesStore } from "src/packages/inaudible.model/store/series-store";
-import type { ProgressStore } from "src/packages/inaudible.model/store/progress-store";
-import { buildApiUrl } from "./api";
+import type { AuthorItem } from "../../inaudible.service/types/library";
 
-
-export interface AuthorItem {
-    id: string,
-    numBooks: number,
-    name: string,
-    pictureUrl: string,
-}
+export type { AuthorItem };
 
 export const authorList = () => {
     const data = signal<AuthorItem[]>([]);
@@ -25,20 +16,14 @@ export const authorList = () => {
         error.value = null;
         data.value = [];
 
-        const store = container.get("inaudible.store.authors") as AuthorStore;
-        let authors = await store.getAll();
-        loading.value = false;
-
-        if (request.searchTerm) {
-            authors = authors.filter(author => author.name.toLowerCase().includes(request.searchTerm.toLowerCase()))
+        try {
+            const inaudible = container.get("inaudible.service") as InaudibleService;
+            data.value = await inaudible.library.getAuthorList(request);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "Failed to load authors";
+        } finally {
+            loading.value = false;
         }
-
-        data.value = authors.map(author => ({
-            id: author.id,
-            numBooks: author.numBooks,
-            name: author.name,
-            pictureUrl: buildApiUrl(`authors/${author.id}/image`),
-        }));
     };
 
     return { data, loading, error, load }
@@ -55,31 +40,14 @@ export const seriesOne = () => {
         error.value = null;
         data.value = null;
         
-        const seriesStore = container.get("inaudible.store.series") as SeriesStore;
-        const authorStore = container.get("inaudible.store.authors") as AuthorStore;
-        const progressStore = container.get("inaudible.store.progress") as ProgressStore;
-        const progressItems = await progressStore.getAll();
-        const progressMap = new Map(progressItems.map(item => [item.libraryItemId, item]));
-        let series = await seriesStore.get(request.id);
-        console.info('series', series)
-
-        loading.value = false;
-
-        data.value = {
-            id: series.id,
-            name: series.name,
-            books: {
-                total: series.books.length,
-                list: series.books.map(book => ({
-                    id: book.id,
-                    name: book.name,
-                    pictureUrl: book.pictureUrl,
-                    position: '0',
-                    progress: progressMap.get(book.id)?.progress ?? 0,
-                    currentTime: progressMap.get(book.id)?.currentTime ?? 0,
-                }))
-            },
-        };
+        try {
+            const inaudible = container.get("inaudible.service") as InaudibleService;
+            data.value = await inaudible.library.getSeriesDetail(request);
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "Failed to load series";
+        } finally {
+            loading.value = false;
+        }
 
     };
 

@@ -5,9 +5,7 @@ import { useLocation, useRoute } from 'preact-iso';
 import { signal } from '@preact/signals';
 import { MoreByAuthor } from '../../authors/component/more-by-author';
 import { container } from '../../../../../container';
-import type { AudiobookshelfApi } from '../../../../audiobookshelf.api/service';
 import type { InaudibleService } from '../../../../inaudible.service';
-import type { DownloadsStore } from '../../../../inaudible.model/store/downloads-store';
 
 
 const viewModel = {
@@ -39,11 +37,7 @@ export default () => {
 
     const [libraryUpdating, setLibraryUpdating] = useState(false);
     const [downloadUpdating, setDownloadUpdating] = useState(false);
-    const api = container.get("audiobookshelf.api") as AudiobookshelfApi;
     const inaudible = container.get("inaudible.service") as InaudibleService;
-    const downloadsStore = container.get("inaudible.store.downloads") as DownloadsStore;
-    const accessToken = api.getAccessToken();
-    const baseUrl = api.getBaseUrl();
 
     const handleOpenPlayer = () => {
         if (!data.value?.id) {
@@ -64,110 +58,35 @@ export default () => {
         setLibraryUpdating(true);
         try {
             const duration = data.value.duration ?? 0;
-            const seedPosition = Math.min(10, duration || 10);
-            const seedProgress = duration > 0 ? seedPosition / duration : 0;
-            await inaudible.progress.updateMediaProgressByLibraryItemId(
-                data.value.id,
-                seedPosition,
-                duration,
-                seedProgress
-            );
+            const result = await inaudible.myLibrary.addToLibrary(data.value.id, duration);
             data.value = {
                 ...data.value,
                 inLibrary: true,
-                progress: seedProgress,
-                currentTime: seedPosition,
+                progress: result.progress,
+                currentTime: result.currentTime,
             };
         } finally {
             setLibraryUpdating(false);
         }
     };
 
-    const normalizeApiBase = (url: string) => {
-        const trimmed = url.replace(/\/+$/, '');
-        if (trimmed.endsWith('/audiobookshelf/api')) {
-            return trimmed;
-        }
-        if (trimmed.endsWith('/audiobookshelf')) {
-            return `${trimmed}/api`;
-        }
-        return `${trimmed}/audiobookshelf/api`;
-    };
-
-    const resolveContentUrl = (apiBase: string, contentUrl: string, token: string) => {
-        const origin = apiBase.replace(/\/api$/, '');
-        const url = contentUrl.startsWith('http') ? contentUrl : `${origin}${contentUrl}`;
-        if (url.includes('token=')) {
-            return url;
-        }
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}token=${encodeURIComponent(token)}`;
-    };
-
     const downloadBook = async () => {
-        if (!data.value?.id || !accessToken || !baseUrl || downloadUpdating) {
+        if (!data.value?.id || downloadUpdating) {
             return;
         }
         setDownloadUpdating(true);
         try {
-            const apiBase = normalizeApiBase(baseUrl);
-            const streamUrl = `${apiBase}/items/${data.value.id}/play?token=${encodeURIComponent(accessToken)}`;
-            const response = await fetch(streamUrl, { method: 'POST' });
-            if (!response.ok) {
-                return;
-            }
-            const payload = await response.json();
-            const trackCandidates =
-                payload?.libraryItem?.media?.tracks ||
-                payload?.media?.tracks ||
-                payload?.audioTracks ||
-                payload?.mediaMetadata?.audioTracks ||
-                [];
-            const trackList = Array.isArray(trackCandidates) ? trackCandidates : [];
-            const downloadableTracks = trackList.filter((track) => track?.contentUrl && !track.contentUrl.includes('/hls/'));
-            if (!downloadableTracks.length) {
-                return;
-            }
-            const tracks: { index: number; title: string; size: number; blob: Blob }[] = [];
-            let totalSize = 0;
-            for (const track of downloadableTracks) {
-                const contentUrl = track?.contentUrl;
-                if (!contentUrl) {
-                    continue;
-                }
-                const downloadUrl = resolveContentUrl(apiBase, contentUrl, accessToken);
-                const mediaResponse = await fetch(downloadUrl);
-                if (!mediaResponse.ok) {
-                    continue;
-                }
-                const blob = await mediaResponse.blob();
-                const title = track?.title || track?.name || track?.metadata?.title || `Track ${tracks.length + 1}`;
-                const index = typeof track?.index === 'number' ? track.index : tracks.length + 1;
-                tracks.push({
-                    index,
-                    title,
-                    size: blob.size,
-                    blob,
-                });
-                totalSize += blob.size;
-            }
-            if (!tracks.length) {
-                return;
-            }
-            const now = Date.now();
-            await downloadsStore.put({
+            const didDownload = await inaudible.myLibrary.downloadBook({
                 id: data.value.id,
-                title: data.value.name ?? 'Untitled',
-                coverUrl: data.value.pictureUrl ?? '',
-                size: totalSize,
-                tracks,
-                createdAt: now,
-                updatedAt: now,
+                title: data.value.name ?? "Untitled",
+                coverUrl: data.value.pictureUrl ?? "",
             });
-            data.value = {
-                ...data.value,
-                isDownloaded: true,
-            };
+            if (didDownload) {
+                data.value = {
+                    ...data.value,
+                    isDownloaded: true,
+                };
+            }
         } finally {
             setDownloadUpdating(false);
         }
@@ -179,7 +98,7 @@ export default () => {
         }
         setDownloadUpdating(true);
         try {
-            await downloadsStore.delete(data.value.id);
+            await inaudible.myLibrary.deleteDownload(data.value.id);
             data.value = {
                 ...data.value,
                 isDownloaded: false,

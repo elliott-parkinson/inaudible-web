@@ -14,9 +14,7 @@ import { LoginDialog } from './components/login-dialog';
 import type { AudiobookshelfApi } from '../audiobookshelf.api/service';
 import { useLayoutEffect, useMemo } from 'preact/hooks';
 import type { MediaProgress } from '../audiobookshelf.api/interfaces/model/media-progress';
-import type { ProgressStore } from '../inaudible.model/store/progress-store';
 import type { ServerSettings } from '../audiobookshelf.api/interfaces/model/server-settings';
-import type { MyLibraryStore } from '../inaudible.model/store/my-library-store';
 
 const loading = signal<boolean>(false);
 const total = signal<number>(100);
@@ -75,8 +73,7 @@ const hasOpenId = (settings: ServerSettings | null) => {
 
 const controller = () => {
  	const api = container.get("audiobookshelf.api") as AudiobookshelfApi;
-    const progressStore = container.get("inaudible.store.progress") as ProgressStore;
-    const libraryStore = container.get("inaudible.store.library") as MyLibraryStore;
+    const inaudibleService = container.get("inaudible.service") as InaudibleService;
     const serverUrl = useMemo(() => signal<string>(localStorage.getItem("abs_api_baseUrl") ?? ""), []);
     const serverSettings = useMemo(() => signal<ServerSettings | null>(null), []);
     const serverSettingsChecking = useMemo(() => signal<boolean>(false), []);
@@ -84,6 +81,7 @@ const controller = () => {
     const openIdButtonText = useMemo(() => signal<string>("Login with OpenID"), []);
     const openIdPending = useMemo(() => signal<boolean>(false), []);
     const openIdError = useMemo(() => signal<string | null>(null), []);
+    const loginLoading = useMemo(() => signal<boolean>(false), []);
     const libraries = useMemo(() => signal<Array<{ id: string; name: string }>>([]), []);
 
     const normalizeLibraries = (items: any[]) => {
@@ -140,28 +138,7 @@ const controller = () => {
 	});
 
     const storeProgress = async (items: MediaProgress[] | undefined) => {
-        if (!items?.length) {
-            return;
-        }
-        await progressStore.putMany(items.map(item => ({
-            id: item.id,
-            userId: item.userId,
-            libraryItemId: item.libraryItemId,
-            mediaItemId: item.mediaItemId,
-            mediaItemType: item.mediaItemType,
-            duration: item.duration,
-            progress: item.progress,
-            currentTime: item.currentTime,
-            isFinished: item.isFinished,
-            lastUpdate: item.lastUpdate,
-            startedAt: item.startedAt,
-        })));
-        const now = Date.now();
-        await libraryStore.putMany(items.map(item => ({
-            id: item.libraryItemId,
-            addedAt: now,
-            updatedAt: now,
-        })));
+        await inaudibleService.myLibrary.storeProgress(items);
     };
 
     const loadServerSettings = async (nextServerUrl?: string) => {
@@ -232,6 +209,7 @@ const controller = () => {
         openIdButtonText,
         openIdPending,
         openIdError,
+        loginLoading,
         libraries,
         selectedLibraryId,
         loadServerSettings,
@@ -254,21 +232,26 @@ const controller = () => {
         },
 		login: async () => {
 			const form = document.getElementById('login-form') as HTMLFormElement;
-			const server = (form.elements.namedItem('server-url') as HTMLInputElement).value;
+			const server = serverUrl.value;
 			const username = (form.elements.namedItem('username') as HTMLInputElement).value;
 			const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
-			const result = await api.login(username, password, server);
-			await storeProgress(result?.user?.mediaProgress);
-            await refreshLibraries();
-            if (result?.userDefaultLibraryId) {
-                selectedLibraryId.value = result.userDefaultLibraryId;
-                localStorage.setItem("inaudible.libraryId", result.userDefaultLibraryId);
+            loginLoading.value = true;
+            try {
+			    const result = await api.login(username, password, server);
+			    await storeProgress(result?.user?.mediaProgress);
+                await refreshLibraries();
+                if (result?.userDefaultLibraryId) {
+                    selectedLibraryId.value = result.userDefaultLibraryId;
+                    localStorage.setItem("inaudible.libraryId", result.userDefaultLibraryId);
+                }
+                onboardingComplete.value = false;
+                localStorage.setItem("inaudible.onboarded", "false");
+			    auth.loggedIn.value = true;
+			    auth.checking.value = false;
+            } finally {
+                loginLoading.value = false;
             }
-            onboardingComplete.value = false;
-            localStorage.setItem("inaudible.onboarded", "false");
-			auth.loggedIn.value = true;
-			auth.checking.value = false;
 		},
         loginOpenId: () => {
             const targetUrl = serverUrl.value.trim().replace(/\/+$/, "");
@@ -352,6 +335,8 @@ const App = () => {
             openIdButtonText={auth.openIdButtonText}
             openIdPending={auth.openIdPending}
             openIdError={auth.openIdError}
+            loginLoading={auth.loginLoading}
+            serverSettingsChecking={auth.serverSettingsChecking}
             updateServerUrl={auth.updateServerUrl}
             loadServerSettings={auth.loadServerSettings}
             login={auth.login}

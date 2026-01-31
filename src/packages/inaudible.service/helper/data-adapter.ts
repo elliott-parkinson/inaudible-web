@@ -51,7 +51,6 @@ export class AudiobookshelfToInaudibleDataAdapter {
             duration: book.media.duration,
         }
     }
-    
     series(series: LibrarySeries): StoredSeries {
         const api = this._container.get("audiobookshelf.api") as AudiobookshelfApi;
         return {

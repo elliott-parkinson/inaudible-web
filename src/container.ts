@@ -8,6 +8,7 @@ import { DownloadsStore } from "./packages/inaudible.model/store/downloads-store
 import { MyLibraryStore } from "./packages/inaudible.model/store/my-library-store";
 import { ProgressStore } from "./packages/inaudible.model/store/progress-store";
 import { SeriesStore } from "./packages/inaudible.model/store/series-store";
+import { StatsStore } from "./packages/inaudible.model/store/stats-store";
 import { InaudibleService } from "./packages/inaudible.service";
 
 export const container = new Map<string, object>;
@@ -35,4 +36,5 @@ export const init = async () => {
     container.set("inaudible.store.library", new MyLibraryStore(store.database));
     container.set("inaudible.store.series", new SeriesStore(store.database));
     container.set("inaudible.store.progress", new ProgressStore(store.database));
+    container.set("inaudible.store.stats", new StatsStore(store.database));
 }

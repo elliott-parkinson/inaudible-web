@@ -5,7 +5,7 @@ export class AudiobookStore {
     database: IDBPDatabase<unknown>;
 
     constructor() {
-        this._database = openDB('AudiobooksDB', 4, {
+        this._database = openDB('AudiobooksDB', 5, {
             upgrade(db) {
                 if (!db.objectStoreNames.contains('books')) {
                     const books = db.createObjectStore('books', { keyPath: 'id' });
@@ -35,6 +35,10 @@ export class AudiobookStore {
 
                 if (!db.objectStoreNames.contains('downloads')) {
                     db.createObjectStore('downloads', { keyPath: 'id' });
+                }
+
+                if (!db.objectStoreNames.contains('stats')) {
+                    db.createObjectStore('stats', { keyPath: 'id' });
                 }
             },
         });

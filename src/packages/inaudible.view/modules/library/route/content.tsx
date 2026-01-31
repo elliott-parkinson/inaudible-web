@@ -4,7 +4,7 @@ import { useLayoutEffect } from 'preact/hooks';
 import { useLocation, useRoute } from 'preact-iso';
 import { SeriesListItem } from '../../series-list/component/series-item';
 import { container } from '../../../../../container';
-import type { DownloadsStore } from '../../../../inaudible.model/store/downloads-store';
+import type { InaudibleService } from '../../../../inaudible.service';
 
 const controller = () => {
     const route = useRoute();
@@ -30,7 +30,7 @@ const controller = () => {
 
 export default () => {
     const { location, books, series, downloads, storage, loading, load } = controller();
-    const downloadsStore = container.get("inaudible.store.downloads") as DownloadsStore;
+    const inaudible = container.get("inaudible.service") as InaudibleService;
 
     const formatBytes = (value: number) => {
         if (!Number.isFinite(value)) {
@@ -47,7 +47,7 @@ export default () => {
     };
 
     const deleteDownload = async (id: string) => {
-        await downloadsStore.delete(id);
+        await inaudible.myLibrary.deleteDownload(id);
         await load();
     };
 

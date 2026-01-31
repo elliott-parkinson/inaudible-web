@@ -1,8 +1,7 @@
 import { signal } from "@preact/signals";
 import { container } from "../../../container";
-import type { AudiobookshelfMeApi } from "../../audiobookshelf.api/service/me";
-import type { AudiobookshelfApi } from "../../audiobookshelf.api/service";
 import type { User } from "../../audiobookshelf.api/interfaces/model/user";
+import type { InaudibleService } from "../../inaudible.service";
 
 export const profileDetails = () => {
     const data = signal<User | null>(null);
@@ -15,9 +14,8 @@ export const profileDetails = () => {
         data.value = null;
 
         try {
-            const meApi = container.get("audiobookshelf.api.me") as AudiobookshelfMeApi;
-            const profile = await meApi.get();
-            data.value = profile ?? null;
+            const inaudible = container.get("inaudible.service") as InaudibleService;
+            data.value = await inaudible.profile.getProfile();
         } catch (err) {
             error.value = err instanceof Error ? err.message : "Failed to load profile";
         } finally {
@@ -26,8 +24,8 @@ export const profileDetails = () => {
     };
 
     const logout = async () => {
-        const api = container.get("audiobookshelf.api") as AudiobookshelfApi;
-        await api.logout(true);
+        const inaudible = container.get("inaudible.service") as InaudibleService;
+        await inaudible.profile.logout();
     };
 
     return { data, loading, error, load, logout };
