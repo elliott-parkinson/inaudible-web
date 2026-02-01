@@ -28,6 +28,8 @@ export const PlayerDock = () => {
                     apiKey={accessToken ?? ""}
                     baseUrl={baseUrl ?? ""}
                     coverUrl={payload.coverUrl ?? ""}
+                    title={payload.title ?? ""}
+                    author={payload.author ?? ""}
                     startPosition={payload.startPosition ?? 0}
                     autoplay={payload.autoplay !== false}
                     onTimeUpdate={(currentTime) => {

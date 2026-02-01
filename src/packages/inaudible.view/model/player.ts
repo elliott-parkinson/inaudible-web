@@ -3,6 +3,7 @@ import { signal } from "@preact/signals";
 export type PlayerPayload = {
     libraryItemId: string;
     title: string;
+    author: string;
     coverUrl: string;
     startPosition: number;
     autoplay?: boolean;

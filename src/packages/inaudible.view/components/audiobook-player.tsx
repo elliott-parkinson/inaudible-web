@@ -22,6 +22,8 @@ type Props = {
   apiKey: string;
   baseUrl: string;
   coverUrl?: string;
+  title?: string;
+  author?: string;
   startPosition?: number;
   autoplay?: boolean;
   onTimeUpdate?: (currentTime: number, duration: number, progress: number) => void;
@@ -42,6 +44,14 @@ const css = `
     gap: 1em;
     align-items: center;
     position: relative;
+  }
+  .player-content {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 1em;
+    min-width: 0;
+    width: 100%;
   }
   .player-close {
     border: none;
@@ -66,19 +76,39 @@ const css = `
     flex-direction: column;
     gap: 0.8em;
     width: 100%;
+    align-self: center;
+    justify-self: stretch;
+  }
+  .player-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+    font-size: 0.85em;
+    align-self: center;
+  }
+  .player-title {
+    font-weight: 600;
+  }
+  .player-author {
+    font-weight: 400;
+    color: #666;
   }
   .player-controls-inner {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 1em;
+    min-width: 0;
+    width: 100%;
+    justify-items: stretch;
   }
   .player-buttons {
     display: flex;
     align-items: center;
     gap: 0.6em;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    width: 100%;
   }
   .player-buttons button {
     border: 1px solid #d1d1d1;
@@ -107,8 +137,9 @@ const css = `
     display: flex;
     justify-content: flex-end;
     gap: 0.8em;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     margin-top: 0.2em;
+    min-width: 0;
   }
   .player-popover {
     position: relative;
@@ -169,6 +200,14 @@ const css = `
     }
     .player-bottom-bar {
       align-items: center;
+      justify-content: center;
+    }
+    .player-buttons {
+      justify-content: center;
+    }
+    .player-buttons button,
+    .player-popover > button {
+      padding: 0.4em 0.6em;
     }
     .player-popover-panel {
       position: fixed;
@@ -178,6 +217,17 @@ const css = `
       bottom: 1.2rem;
       width: auto;
       max-width: calc(100vw - 2rem);
+    }
+    .player-main {
+      grid-template-columns: minmax(90px, 100px) 1fr;
+    }
+    .player-content {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+    .player-meta {
+      grid-column: 1 / -1;
+      text-align: center;
     }
   }
   audio {
@@ -217,6 +267,8 @@ export const AudiobookPlayerView = ({
   apiKey,
   baseUrl,
   coverUrl,
+  title,
+  author,
   startPosition = 0,
   autoplay = true,
   onTimeUpdate,
@@ -717,100 +769,106 @@ export const AudiobookPlayerView = ({
             </adw-icon>
           </button>
           <img className="player-cover" src={coverUrl} alt="Book cover" />
-          <div className="player-controls">
-            <div className="player-controls-inner">
-              <div className="player-buttons">
-                <button type="button" className="player-chapter-button" onClick={handlePrevChapterClick} disabled={!canGoPrev}>
-                  <adw-icon style="width: 1.4em; height: 1.4em;">
-                    <img src={backIcon} alt="Previous Chapter" />
-                  </adw-icon>
-                </button>
-                <button type="button" onClick={handleBackClick}>
-                  <adw-icon style="width: 1.4em; height: 1.4em;">
-                    <img src={backTenIcon} alt="Back 10s" />
-                  </adw-icon>
-                </button>
-                <button type="button" className="player-play" onClick={handlePlayClick}>
-                  {isPlaying ? (
+          <div className="player-content">
+            <div className="player-meta">
+              <div className="player-title">{title}</div>
+              <div className="player-author">{author}</div>
+            </div>
+            <div className="player-controls">
+              <div className="player-controls-inner">
+                <div className="player-buttons">
+                  <button type="button" className="player-chapter-button" onClick={handlePrevChapterClick} disabled={!canGoPrev}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
-                      <img src={pauseIcon} alt="Pause" />
-                    </adw-icon>
-                  ) : (
-                    <adw-icon style="width: 1.4em; height: 1.4em;">
-                      <img src={playIcon} alt="Play" />
-                    </adw-icon>
-                  )}
-                </button>
-                <button type="button" onClick={handleForwardClick}>
-                  <adw-icon style="width: 1.4em; height: 1.4em;">
-                    <img src={forwardTenIcon} alt="Forward 10s" />
-                  </adw-icon>
-                </button>
-                <button type="button" className="player-chapter-button" onClick={handleNextChapterClick} disabled={!canGoNext}>
-                  <adw-icon style="width: 1.4em; height: 1.4em;">
-                    <img src={forwardIcon} alt="Next Chapter" />
-                  </adw-icon>
-                </button>
-              </div>
-              <div className="player-bottom-bar">
-                <div className="player-popover">
-                  <button type="button" onClick={handleVolumeClick}>
-                    <adw-icon style="width: 1.4em; height: 1.4em;">
-                      <img src={volumeIcon} alt="volume" />
+                      <img src={backIcon} alt="Previous Chapter" />
                     </adw-icon>
                   </button>
-                  <div className={`player-popover-panel ${volumeOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
-                    <label className="player-volume">
-                      <span>Volume</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={volume}
-                        onInput={handleVolumeInput}
-                      />
-                    </label>
-                  </div>
-                </div>
-                <div className="player-popover">
-                  <button type="button" onClick={handleSleepClick}>
+                  <button type="button" onClick={handleBackClick}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
-                        <img src={alarmIcon} alt="Sleep Timer" />
+                      <img src={backTenIcon} alt="Back 10s" />
+                    </adw-icon>
+                  </button>
+                  <button type="button" className="player-play" onClick={handlePlayClick}>
+                    {isPlaying ? (
+                      <adw-icon style="width: 1.4em; height: 1.4em;">
+                        <img src={pauseIcon} alt="Pause" />
                       </adw-icon>
+                    ) : (
+                      <adw-icon style="width: 1.4em; height: 1.4em;">
+                        <img src={playIcon} alt="Play" />
+                      </adw-icon>
+                    )}
                   </button>
-                  <div className={`player-popover-panel ${sleepOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
-                    <label className="player-sleep">
-                      <span>Sleep timer</span>
-                      <select value={sleepValue} onChange={handleSleepChange}>
-                        {sleepOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                      <span className="player-sleep-status">{sleepLabel || 'Sleep off'}</span>
-                    </label>
-                  </div>
+                  <button type="button" onClick={handleForwardClick}>
+                    <adw-icon style="width: 1.4em; height: 1.4em;">
+                      <img src={forwardTenIcon} alt="Forward 10s" />
+                    </adw-icon>
+                  </button>
+                  <button type="button" className="player-chapter-button" onClick={handleNextChapterClick} disabled={!canGoNext}>
+                    <adw-icon style="width: 1.4em; height: 1.4em;">
+                      <img src={forwardIcon} alt="Next Chapter" />
+                    </adw-icon>
+                  </button>
                 </div>
-                <div className="player-popover">
-                  <button type="button" onClick={handleChapterClick}>
-                  <adw-icon style="width: 1.4em; height: 1.4em;">
-                    <img src={chaptersIcon} alt="Chapters" />
-                  </adw-icon></button>
-                  <div className={`player-popover-panel ${chapterOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
-                    <label className="player-chapters">
-                      <span>Chapters</span>
-                      <select value={String(currentTrackIndex)} disabled={trackList.length === 0} onChange={handleChapterChange}>
-                        {trackList.length === 0 && <option value="-1">Chapters unavailable</option>}
-                        {trackList.map((track, index) => {
-                          const title = track?.title || track?.name || track?.metadata?.title;
-                          return (
-                            <option key={String(index)} value={String(index)}>
-                              {title ? `Chapter ${index + 1}: ${title}` : `Chapter ${index + 1}`}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </label>
+                <div className="player-bottom-bar">
+                  <div className="player-popover">
+                    <button type="button" onClick={handleVolumeClick}>
+                      <adw-icon style="width: 1.4em; height: 1.4em;">
+                        <img src={volumeIcon} alt="volume" />
+                      </adw-icon>
+                    </button>
+                    <div className={`player-popover-panel ${volumeOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
+                      <label className="player-volume">
+                        <span>Volume</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={volume}
+                          onInput={handleVolumeInput}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="player-popover">
+                    <button type="button" onClick={handleSleepClick}>
+                      <adw-icon style="width: 1.4em; height: 1.4em;">
+                          <img src={alarmIcon} alt="Sleep Timer" />
+                        </adw-icon>
+                    </button>
+                    <div className={`player-popover-panel ${sleepOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
+                      <label className="player-sleep">
+                        <span>Sleep timer</span>
+                        <select value={sleepValue} onChange={handleSleepChange}>
+                          {sleepOptions.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                        <span className="player-sleep-status">{sleepLabel || 'Sleep off'}</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="player-popover">
+                    <button type="button" onClick={handleChapterClick}>
+                    <adw-icon style="width: 1.4em; height: 1.4em;">
+                      <img src={chaptersIcon} alt="Chapters" />
+                    </adw-icon></button>
+                    <div className={`player-popover-panel ${chapterOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
+                      <label className="player-chapters">
+                        <span>Chapters</span>
+                        <select value={String(currentTrackIndex)} disabled={trackList.length === 0} onChange={handleChapterChange}>
+                          {trackList.length === 0 && <option value="-1">Chapters unavailable</option>}
+                          {trackList.map((track, index) => {
+                            const title = track?.title || track?.name || track?.metadata?.title;
+                            return (
+                              <option key={String(index)} value={String(index)}>
+                                {title ? `Chapter ${index + 1}: ${title}` : `Chapter ${index + 1}`}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

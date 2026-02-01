@@ -46,6 +46,7 @@ export default () => {
         model.player.openPlayer({
             libraryItemId: data.value.id,
             title: data.value.name ?? "",
+            author: data.value?.authors?.map((author) => author.name).join(", ") ?? "",
             coverUrl: data.value.pictureUrl ?? "",
             startPosition: data.value.resumeTime ?? data.value.currentTime ?? 0,
         });
