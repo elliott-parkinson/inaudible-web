@@ -300,6 +300,23 @@ const controller = () => {
 
 const App = () => {
 	const auth = controller();
+    const autoSyncChecked = useRef(false);
+
+    useLayoutEffect(() => {
+        if (autoSyncChecked.current) {
+            return;
+        }
+        if (!auth.loggedIn.value || !auth.selectedLibraryId.value) {
+            return;
+        }
+        autoSyncChecked.current = true;
+        const lastSyncRaw = localStorage.getItem("inaudible.lastsync") ?? "0";
+        const lastSync = Number.parseInt(lastSyncRaw, 10);
+        const twelveHoursMs = 12 * 60 * 60 * 1000;
+        if (!Number.isFinite(lastSync) || Date.now() - lastSync > twelveHoursMs) {
+            void synchronize(auth.selectedLibraryId.value);
+        }
+    }, [auth.loggedIn.value, auth.selectedLibraryId.value]);
 
 	return <LocationProvider>
 		<adw-header>
