@@ -67,6 +67,30 @@ export default () => {
     const categoriesSafe = categories ?? signal([]);
 
     return <>
+        <style>
+            {`
+            .category-row-list {
+                display: grid;
+                grid-auto-flow: column;
+                grid-auto-columns: 140px;
+                gap: 1em;
+                padding: 0;
+                margin: 0;
+                list-style: none;
+            }
+            .category-row-list li {
+                width: 140px;
+                aspect-ratio: 1 / 1;
+            }
+            .category-row-list inaudible-audiobook {
+                display: block;
+                width: 100%;
+                height: 100%;
+                border-radius: 0.8em;
+                overflow: hidden;
+            }
+            `}
+        </style>
         <adw-clamp>
             {continueListeningSafe.value.length > 0 && (
                 <>
