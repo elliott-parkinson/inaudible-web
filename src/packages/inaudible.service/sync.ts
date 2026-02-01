@@ -132,6 +132,113 @@ export class InaudibleSynchronizationService extends EventTarget {
         (await books.getAll()).forEach(book => fetch(`${api.getBaseUrl()}/audiobookshelf/api/items/${book.id}/cover`));
     }
 
+    private async hasItem(store: { get: (id: string) => Promise<any> }, id: string): Promise<boolean> {
+        if (!id) {
+            return false;
+        }
+        const found = await store.get(id);
+        return !!found;
+    }
+
+    private async fetchAuthorsPage(libraries: Libraries, libraryId: string, page: number, limit: number) {
+        const response = await libraries.authors({
+            libraryId,
+            include: [],
+            page,
+            limit,
+            minified: true,
+        });
+        return response.authors ?? [];
+    }
+
+    private async fetchSeriesPage(libraries: Libraries, libraryId: string, page: number, limit: number) {
+        const response = await libraries.series({
+            libraryId,
+            include: [],
+            page,
+            limit,
+            minified: true,
+        });
+        return response.results ?? [];
+    }
+
+    private async fetchBooksPage(libraries: Libraries, libraryId: string, page: number, limit: number) {
+        const response = await libraries.items({
+            libraryId,
+            include: [],
+            page,
+            limit,
+            collapseSeries: false,
+            minified: true,
+        });
+        return response.results ?? [];
+    }
+
+    private async collectMissing<T extends { id: string }>(
+        fetchPage: (page: number, limit: number) => Promise<T[]>,
+        hasItem: (id: string) => Promise<boolean>,
+    ): Promise<T[] | null> {
+        let page = 0;
+        let limit = 5;
+        const collected: T[] = [];
+
+        while (true) {
+            const batch = await fetchPage(page, limit);
+            if (!batch.length) {
+                return collected.length ? collected : null;
+            }
+            collected.push(...batch);
+
+            const first = collected[0];
+            const last = collected[collected.length - 1];
+            const hasFirst = first ? await hasItem(first.id) : false;
+            const hasLast = last ? await hasItem(last.id) : false;
+
+            if (hasFirst && hasLast) {
+                return null;
+            }
+            if (!hasFirst && hasLast) {
+                return collected;
+            }
+
+            page += 1;
+            limit = 10;
+        }
+    }
+
+    async synchronizePartial(defaultLibrary: string) {
+        console.info("Starting partial synchronization...");
+        const libraries = this._container.get("audiobookshelf.api.libraries") as Libraries;
+        const books = this._container.get("inaudible.store.books") as BookStore;
+        const authors = this._container.get("inaudible.store.authors") as AuthorStore;
+        const seriesStore = this._container.get("inaudible.store.series") as SeriesStore;
+
+        const [authorsToSync, seriesToSync, booksToSync] = await Promise.all([
+            this.collectMissing<LibraryAuthor>(
+                (page, limit) => this.fetchAuthorsPage(libraries, defaultLibrary, page, limit),
+                (id) => this.hasItem(authors, id)
+            ),
+            this.collectMissing<LibrarySeries>(
+                (page, limit) => this.fetchSeriesPage(libraries, defaultLibrary, page, limit),
+                (id) => this.hasItem(seriesStore, id)
+            ),
+            this.collectMissing<LibraryItem>(
+                (page, limit) => this.fetchBooksPage(libraries, defaultLibrary, page, limit),
+                (id) => this.hasItem(books, id)
+            ),
+        ]);
+
+        if (!authorsToSync && !seriesToSync && !booksToSync) {
+            return;
+        }
+
+        await this.processFetchedData({
+            authors: authorsToSync ?? [],
+            series: seriesToSync ?? [],
+            books: booksToSync ?? [],
+        });
+    }
+
     async synchronize(defaultLibrary: string) {
         const api = this._container.get("audiobookshelf.api") as AudiobookshelfApi;
         const libraries = this._container.get("audiobookshelf.api.libraries") as Libraries;

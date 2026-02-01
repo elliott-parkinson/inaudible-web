@@ -44,7 +44,7 @@ export class Libraries {
         const path = `/libraries/${req.libraryId}/series`;
 
         const params = new URLSearchParams({
-            sort: "name",
+            sort: "addedAt",
             desc: "0",
             filter: "all",
             limit: req.limit.toString(),

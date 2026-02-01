@@ -304,6 +304,7 @@ const controller = () => {
 const App = () => {
 	const auth = controller();
     const autoSyncChecked = useRef(false);
+    const partialSyncChecked = useRef(false);
 
     useLayoutEffect(() => {
         if (autoSyncChecked.current) {
@@ -319,6 +320,18 @@ const App = () => {
         if (!Number.isFinite(lastSync) || Date.now() - lastSync > twelveHoursMs) {
             void synchronize(auth.selectedLibraryId.value);
         }
+    }, [auth.loggedIn.value, auth.selectedLibraryId.value]);
+
+    useLayoutEffect(() => {
+        if (partialSyncChecked.current) {
+            return;
+        }
+        if (!auth.loggedIn.value || !auth.selectedLibraryId.value) {
+            return;
+        }
+        partialSyncChecked.current = true;
+        const inaudible = container.get("inaudible.service") as InaudibleService;
+        void inaudible.sync.synchronizePartial(auth.selectedLibraryId.value);
     }, [auth.loggedIn.value, auth.selectedLibraryId.value]);
 
 	return <LocationProvider>
