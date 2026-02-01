@@ -45,6 +45,7 @@ export class InaudibleMediaProgressService extends EventTarget {
         }
 
         await progressStore?.put({
+            id: libraryItemId,
             libraryItemId,
             currentTime,
             duration,
@@ -82,6 +83,7 @@ export class InaudibleMediaProgressService extends EventTarget {
         if (progress && progress.progress) {
             const now = Date.now();
             await progressStore.put({
+                id: libraryItemId,
                 libraryItemId: libraryItemId,
                 position: progress.currentTime,
                 duration: progress.duration,
