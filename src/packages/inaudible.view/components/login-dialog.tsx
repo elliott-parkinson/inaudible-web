@@ -240,7 +240,13 @@ export const LoginDialog = ({
                         {serverSettingsChecking.value ? "Checking..." : "Continue"}
                     </button>
                 ) : step === 'login' ? (
-                    <button class="primary" type="submit" disabled={loginLoading.value}>
+                    <button
+                        class="primary"
+                        type="submit"
+                        form="login-form"
+                        onClick={() => login()}
+                        disabled={loginLoading.value}
+                    >
                         {loginLoading.value && <adw-spinner aria-hidden="true" style={{ marginRight: "0.5em" }} />}
                         {loginLoading.value ? "Logging in..." : "Login"}
                         </button>
