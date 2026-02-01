@@ -12,7 +12,7 @@ import { BottomNav } from './components/bottom-nav';
 import { PlayerDock } from './components/player-dock';
 import { LoginDialog } from './components/login-dialog';
 import type { AudiobookshelfApi } from '../audiobookshelf.api/service';
-import { useLayoutEffect, useMemo } from 'preact/hooks';
+import { useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import type { MediaProgress } from '../audiobookshelf.api/interfaces/model/media-progress';
 import type { ServerSettings } from '../audiobookshelf.api/interfaces/model/server-settings';
 
