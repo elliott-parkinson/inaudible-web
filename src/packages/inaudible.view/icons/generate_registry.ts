@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { dirname, fromFileUrl, join, relative } from "https://deno.land/std@0.224.0/path/mod.ts";
 
 const basePath = dirname(fromFileUrl(import.meta.url));

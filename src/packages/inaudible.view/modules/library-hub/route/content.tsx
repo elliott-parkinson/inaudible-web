@@ -73,7 +73,7 @@ export default () => {
                     />
                 </form>
             </section>
-            <tab-list>
+            <div className="tab-list">
                 <button
                     type="button"
                     className={activeTab.value === 'books' ? 'active' : ''}
@@ -95,7 +95,7 @@ export default () => {
                 >
                     Authors {searchTerm.value.length >= 3 ? `(${authors.data.value.length})` : ""}
                 </button>
-            </tab-list>
+            </div>
 
             <section role="tabpanel" hidden={activeTab.value !== 'books'}>
                 {books.loading.value ? (

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { container } from "../../../container";
 import type { InaudibleService } from '../../inaudible.service';
 import type { InaudibleMediaProgressService } from '../../inaudible.service/media-progress';
-import type { DownloadsStore } from '../../inaudible.model/store/downloads-store';
+import type { DownloadsStore } from '../../inaudible.store/store/downloads-store';
 import { AudiobookPlayer } from '../../inaudible.ui/components/audiobook-player/audiobook-player';
 import { PlayerTrack } from './player-track';
 import closeIcon from "../icons/process-stop-symbolic.svg";
