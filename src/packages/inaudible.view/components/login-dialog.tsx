@@ -230,7 +230,6 @@ export const LoginDialog = ({
                     <button
                         class="primary"
                         onClick={async () => {
-                            await loadServerSettings();
                             setServerConfirmed(true);
                             setStep('login');
                         }}
