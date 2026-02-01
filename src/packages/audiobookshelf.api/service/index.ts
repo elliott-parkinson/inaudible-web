@@ -248,13 +248,26 @@ export class AudiobookshelfApi {
 
         const shouldRefresh = response.status === 401 && this.refreshToken;
         if (shouldRefresh) {
-            await this.refreshAccessToken();
-            response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+            try {
+                await this.refreshAccessToken();
+            } catch (error) {
+                await this.logout();
+                throw error;
+            }
+            response = await fetch(`${this._baseUrl}/api/authorize`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${this.accessToken}`,
                 },
             });
+            if (response.status === 404) {
+                response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${this.accessToken}`,
+                    },
+                });
+            }
         }
 
         if (!response.ok) {
@@ -316,7 +329,12 @@ export class AudiobookshelfApi {
 
         const shouldRefresh = response.status === 401 && this.refreshToken;
         if (shouldRefresh) {
-            await this.refreshAccessToken();
+            try {
+                await this.refreshAccessToken();
+            } catch (error) {
+                await this.logout();
+                throw error;
+            }
 
             response = await doRequest(`/api`);
             if (response.status === 404) {
