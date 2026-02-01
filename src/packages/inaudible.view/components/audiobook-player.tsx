@@ -15,7 +15,7 @@ import backIcon from "../icons/media-skip-backward-symbolic.svg";
 import forwardIcon from "../icons/media-skip-backward-symbolic-rtl.svg";
 import playIcon from "../icons/media-playback-start-symbolic.svg";
 import pauseIcon from "../icons/media-playback-pause-symbolic.svg";
-import chaptersIcon from "../icons/media-playback-pause-symbolic.svg";
+import chaptersIcon from "../icons/view-list-bullet-symbolic.svg";
 
 type Props = {
   mediaItemId: string;
