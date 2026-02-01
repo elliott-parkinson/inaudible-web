@@ -7,11 +7,18 @@ export class AudiobookPlayer implements IAudiobookPlayer {
   #remote: IAudiobookPlayer;
   #local: IAudiobookPlayer;
   #usingLocal: boolean;
+  #audio: HTMLAudioElement;
 
-  constructor(audio: HTMLAudioElement, statusEl: HTMLDivElement, callbacks: AudiobookPlayerCallbacks) {
-    this.#remote = new AudiobookshelfPlayer(audio, statusEl, callbacks);
-    this.#local = new LocalPlayer(audio, statusEl, callbacks);
+  constructor(callbacks: AudiobookPlayerCallbacks) {
+    this.#audio = new Audio();
+    this.#audio.controls = false;
+    this.#remote = new AudiobookshelfPlayer(this.#audio, callbacks);
+    this.#local = new LocalPlayer(this.#audio, callbacks);
     this.#usingLocal = false;
+  }
+
+  get audio(): HTMLAudioElement {
+    return this.#audio;
   }
 
   get trackList(): Array<any> {

@@ -3,7 +3,6 @@ import type { AudiobookPlayerCallbacks, LocalDownload, PlayerConfig } from "./ty
 
 export class AudiobookshelfPlayer implements IAudiobookPlayer {
   audio: HTMLAudioElement;
-  statusEl: HTMLDivElement;
   mediaItemId: string | null;
   apiKey: string | null;
   baseUrl: string | null;
@@ -14,9 +13,8 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
   controller: AbortController | null;
   #callbacks: AudiobookPlayerCallbacks;
 
-  constructor(audio: HTMLAudioElement, statusEl: HTMLDivElement, callbacks: AudiobookPlayerCallbacks) {
+  constructor(audio: HTMLAudioElement, callbacks: AudiobookPlayerCallbacks) {
     this.audio = audio;
-    this.statusEl = statusEl;
     this.#callbacks = callbacks;
     this.mediaItemId = null;
     this.apiKey = null;
@@ -56,7 +54,7 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
       });
 
       if (!response.ok) {
-        this.statusEl.textContent = `Playback failed: ${response.status} ${response.statusText}`;
+        this.#callbacks.onStatus?.(`Playback failed: ${response.status} ${response.statusText}`);
         return;
       }
 
@@ -94,7 +92,7 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
           1;
 
         if (!sessionId) {
-          this.statusEl.textContent = 'Playback failed: missing session id.';
+          this.#callbacks.onStatus?.('Playback failed: missing session id.');
           return;
         }
 
@@ -106,7 +104,7 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
         this.audio.src = sessionUrl;
       }
       this.audio.load();
-      this.statusEl.textContent = '';
+      this.#callbacks.onStatus?.('');
       if (this.#callbacks.shouldAutoplay()) {
         this.audio.play().catch(() => {});
       }
@@ -114,10 +112,14 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
       this.#callbacks.onPlaybackUpdate();
       this.#callbacks.onProgress(true);
     } catch (error) {
-      if (!this.controller?.signal.aborted) {
-        console.error('audiobookshelf stream error', error);
-        this.statusEl.textContent = 'Playback failed while streaming.';
+      const isAbort =
+        this.controller?.signal.aborted ||
+        (error instanceof DOMException && error.name === 'AbortError');
+      if (isAbort) {
+        return;
       }
+      console.error('audiobookshelf stream error', error);
+      this.#callbacks.onStatus?.('Playback failed while streaming.');
     }
   }
 

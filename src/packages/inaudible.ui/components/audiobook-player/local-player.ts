@@ -3,16 +3,14 @@ import type { AudiobookPlayerCallbacks, LocalDownload, PlayerConfig } from "./ty
 
 export class LocalPlayer implements IAudiobookPlayer {
   audio: HTMLAudioElement;
-  statusEl: HTMLDivElement;
   trackList: Array<any>;
   currentTrackIndex: number;
   #localDownload: LocalDownload | null;
   #localObjectUrl: string | null;
   #callbacks: AudiobookPlayerCallbacks;
 
-  constructor(audio: HTMLAudioElement, statusEl: HTMLDivElement, callbacks: AudiobookPlayerCallbacks) {
+  constructor(audio: HTMLAudioElement, callbacks: AudiobookPlayerCallbacks) {
     this.audio = audio;
-    this.statusEl = statusEl;
     this.#callbacks = callbacks;
     this.trackList = [];
     this.currentTrackIndex = 0;
@@ -93,7 +91,7 @@ export class LocalPlayer implements IAudiobookPlayer {
     this.#localObjectUrl = URL.createObjectURL(track.blob);
     this.audio.src = this.#localObjectUrl;
     this.audio.load();
-    this.statusEl.textContent = '';
+    this.#callbacks.onStatus?.('');
     if (autoPlay) {
       this.audio.play().catch(() => {});
     }

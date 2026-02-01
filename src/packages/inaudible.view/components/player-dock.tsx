@@ -2,33 +2,16 @@ import { h } from 'preact';
 import model from '../model';
 import { container } from "../../../container";
 import type { AudiobookshelfApi } from '../../audiobookshelf.api/service';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
+import { AudiobookPlayerView } from './audiobook-player';
+import closeIcon from "../icons/process-stop-symbolic.svg";
 
 export const PlayerDock = () => {
     const { current, open, closePlayer } = model.player;
     const payload = current.value;
-    const playerRef = useRef<HTMLElement | null>(null);
-
     useEffect(() => {
         model.player.restorePlayer();
     }, []);
-
-    useEffect(() => {
-        const target = playerRef.current;
-        if (!target) {
-            return;
-        }
-        const onTime = (event: Event) => {
-            const detail = (event as CustomEvent).detail as { currentTime?: number };
-            if (typeof detail?.currentTime === 'number') {
-                model.player.updatePosition(detail.currentTime);
-            }
-        };
-        target.addEventListener('player-timeupdate', onTime);
-        return () => {
-            target.removeEventListener('player-timeupdate', onTime);
-        };
-    }, [payload?.libraryItemId]);
 
     if (!open.value || !payload) {
         return null;
@@ -43,16 +26,22 @@ export const PlayerDock = () => {
             <div className="adw-player">
                 <div className="adw-player-header">
                     <strong>{payload.title}</strong>
-                    <button onClick={() => closePlayer()}>Close</button>
+                    <button onClick={() => closePlayer()}>
+                        <adw-icon style="width: 1.4em; height: 1.4em;">
+                            <img src={closeIcon} alt="Close player" />
+                        </adw-icon>
+                    </button>
                 </div>
-                <audiobookshelf-player
-                    ref={playerRef as any}
-                    media-item-id={payload.libraryItemId}
-                    api-key={accessToken ?? ""}
-                    base-url={baseUrl ?? ""}
-                    cover-url={payload.coverUrl ?? ""}
-                    start-position={payload.startPosition ?? 0}
-                    autoplay={payload.autoplay === false ? "false" : undefined}
+                <AudiobookPlayerView
+                    mediaItemId={payload.libraryItemId}
+                    apiKey={accessToken ?? ""}
+                    baseUrl={baseUrl ?? ""}
+                    coverUrl={payload.coverUrl ?? ""}
+                    startPosition={payload.startPosition ?? 0}
+                    autoplay={payload.autoplay !== false}
+                    onTimeUpdate={(currentTime) => {
+                        model.player.updatePosition(currentTime);
+                    }}
                 />
             </div>
         </div>

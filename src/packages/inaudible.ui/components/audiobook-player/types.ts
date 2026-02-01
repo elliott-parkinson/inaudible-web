@@ -5,7 +5,7 @@ export type AudiobookPlayerCallbacks = {
   onChapterUpdate: () => void;
   onPlaybackUpdate: () => void;
   onProgress: (force: boolean) => void;
+  onStatus?: (message: string) => void;
 };
 
 export type PlayerConfig = { mediaItemId: string | null; apiKey: string | null; baseUrl: string | null };
-

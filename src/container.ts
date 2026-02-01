@@ -14,6 +14,16 @@ import { InaudibleService } from "./packages/inaudible.service";
 export const container = new Map<string, object>;
 
 
+export class Container {
+    store = new Map<string, object>;
+     
+
+    async init() {
+
+    }
+}
+
+export const loaded = new Promise<void>();
 
 export const init = async () => {
     const apiBaseUrl = localStorage.getItem("abs_api_baseUrl") ?? "";

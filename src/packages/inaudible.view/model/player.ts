@@ -11,6 +11,8 @@ export type PlayerPayload = {
 const current = signal<PlayerPayload | null>(null);
 const open = signal<boolean>(false);
 const storageKey = "inaudible.player.session";
+const minPersistIntervalMs = 5000;
+let lastPersistAt = 0;
 
 const persist = () => {
     if (!current.value || !open.value) {
@@ -46,6 +48,11 @@ const updatePosition = (position: number) => {
     if (!current.value || !Number.isFinite(position)) {
         return;
     }
+    const now = Date.now();
+    if (now - lastPersistAt < minPersistIntervalMs) {
+        return;
+    }
+    lastPersistAt = now;
     current.value = {
         ...current.value,
         startPosition: position,
