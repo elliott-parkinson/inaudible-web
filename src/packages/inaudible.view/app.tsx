@@ -12,6 +12,7 @@ import { BottomNav } from './components/bottom-nav';
 import { PlayerDock } from './components/player-dock';
 import { LoginDialog } from './components/login-dialog';
 import type { AudiobookshelfApi } from '../audiobookshelf.api/service';
+import type { AudiobookshelfMeApi } from '../audiobookshelf.api/service/me';
 import { useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import type { MediaProgress } from '../audiobookshelf.api/interfaces/model/media-progress';
 import type { ServerSettings } from '../audiobookshelf.api/interfaces/model/server-settings';
@@ -184,16 +185,17 @@ const controller = () => {
         auth.loggedIn.value = true;
         const verify = async () => {
             try {
-                const user = await api.authorize();
+                const meApi = container.get("audiobookshelf.api.me") as AudiobookshelfMeApi;
+                const user = await meApi.get();
                 auth.loggedIn.value = true;
                 await storeProgress(user?.mediaProgress);
+                await refreshLibraries();
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (message.includes("401")) {
                     auth.loggedIn.value = false;
                 }
             } finally {
-                await refreshLibraries();
                 auth.checking.value = false;
             }
         };
