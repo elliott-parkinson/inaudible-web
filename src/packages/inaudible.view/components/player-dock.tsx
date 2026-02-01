@@ -4,7 +4,6 @@ import { container } from "../../../container";
 import type { AudiobookshelfApi } from '../../audiobookshelf.api/service';
 import { useEffect } from 'preact/hooks';
 import { AudiobookPlayerView } from './audiobook-player';
-import closeIcon from "../icons/process-stop-symbolic.svg";
 
 export const PlayerDock = () => {
     const { current, open, closePlayer } = model.player;
@@ -24,14 +23,6 @@ export const PlayerDock = () => {
     return (
         <div className="adw-player-dock">
             <div className="adw-player">
-                <div className="adw-player-header">
-                    <strong>{payload.title}</strong>
-                    <button onClick={() => closePlayer()}>
-                        <adw-icon style="width: 1.4em; height: 1.4em;">
-                            <img src={closeIcon} alt="Close player" />
-                        </adw-icon>
-                    </button>
-                </div>
                 <AudiobookPlayerView
                     mediaItemId={payload.libraryItemId}
                     apiKey={accessToken ?? ""}
@@ -42,6 +33,7 @@ export const PlayerDock = () => {
                     onTimeUpdate={(currentTime) => {
                         model.player.updatePosition(currentTime);
                     }}
+                    onClose={() => closePlayer()}
                 />
             </div>
         </div>

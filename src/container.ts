@@ -23,8 +23,6 @@ export class Container {
     }
 }
 
-export const loaded = new Promise<void>();
-
 export const init = async () => {
     const apiBaseUrl = localStorage.getItem("abs_api_baseUrl") ?? "";
     const api = new AudiobookshelfApi(apiBaseUrl);
