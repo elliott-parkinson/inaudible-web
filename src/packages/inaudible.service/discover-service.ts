@@ -43,7 +43,7 @@ export class DiscoverService {
         const latestBooks = await store.getRecentlyAdded(6);
 
         const startedItems = progressItems
-            .filter(item => item.currentTime > 0 && !item.isFinished && item.progress < 1)
+            .filter(item => item.currentTime >= 30 && !item.isFinished && item.progress < 1)
             .sort((a, b) => b.lastUpdate - a.lastUpdate)
             .slice(0, 6)
             .map(item => {
