@@ -53,6 +53,8 @@ const synchronize = async (libraryId: string | null) => {
 
     console.info(" - sync complete - ");
     syncComplete.value = true;
+    onboardingComplete.value = true;
+    localStorage.setItem("inaudible.onboarded", "true");
 
     setTimeout(() => {
       complete.value = 0;
@@ -98,17 +100,21 @@ const controller = () => {
 
     const refreshLibraries = async () => {
         let normalized = normalizeLibraries(api.getLibrariesAccessible());
-        if (!normalized.length) {
-            try {
-                const apiLibraries = await api.listLibraries();
-                normalized = normalizeLibraries(apiLibraries);
-            } catch (error) {
+        try {
+            const apiLibraries = await api.listLibraries();
+            normalized = normalizeLibraries(apiLibraries);
+        } catch (error) {
+            if (!normalized.length) {
                 console.warn("Failed to load libraries", error);
             }
         }
-        if (!normalized.length && selectedLibraryId.value) {
-            libraries.value = [{ id: selectedLibraryId.value, name: "Library" }];
-            return;
+        if (!normalized.length && api.getAccessToken()) {
+            try {
+                await api.authorize();
+                normalized = normalizeLibraries(api.getLibrariesAccessible());
+            } catch (error) {
+                console.warn("Failed to refresh libraries from authorize", error);
+            }
         }
         libraries.value = normalized;
         if (libraries.value.length > 0) {
@@ -181,23 +187,18 @@ const controller = () => {
                 const user = await api.authorize();
                 auth.loggedIn.value = true;
                 await storeProgress(user?.mediaProgress);
-                await refreshLibraries();
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (message.includes("401")) {
                     auth.loggedIn.value = false;
                 }
             } finally {
+                await refreshLibraries();
                 auth.checking.value = false;
             }
         };
         verify();
     }, []);
-
-    useLayoutEffect(() => {
-        loadServerSettings();
-    }, []);
-
     
 
 	return {
@@ -245,8 +246,9 @@ const controller = () => {
                     selectedLibraryId.value = result.userDefaultLibraryId;
                     localStorage.setItem("inaudible.libraryId", result.userDefaultLibraryId);
                 }
-                onboardingComplete.value = false;
-                localStorage.setItem("inaudible.onboarded", "false");
+                if (onboardingComplete.value) {
+                    localStorage.setItem("inaudible.onboarded", "true");
+                }
 			    auth.loggedIn.value = true;
 			    auth.checking.value = false;
             } finally {
@@ -288,8 +290,9 @@ const controller = () => {
                 openIdPending.value = false;
                 openIdError.value = null;
                 await refreshLibraries();
-                onboardingComplete.value = false;
-                localStorage.setItem("inaudible.onboarded", "false");
+                if (onboardingComplete.value) {
+                    localStorage.setItem("inaudible.onboarded", "true");
+                }
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 openIdError.value = message;

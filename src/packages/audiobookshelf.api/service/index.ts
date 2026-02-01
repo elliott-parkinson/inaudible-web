@@ -59,24 +59,13 @@ export class AudiobookshelfApi {
     }
 
     async listLibraries(): Promise<any[]> {
-        const response = await fetch(`${this._baseUrl}/audiobookshelf/api/libraries`, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${this.accessToken}`,
-            },
-        });
+        const response = await this.request<void, any[]>(`/libraries`, "GET", undefined);
 
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Libraries fetch failed: ${response.status} ${error}`);
+        if (Array.isArray((response as any)?.libraries)) {
+            return (response as any).libraries;
         }
-
-        const data = await response.json();
-        if (Array.isArray(data?.libraries)) {
-            return data.libraries;
-        }
-        if (Array.isArray(data)) {
-            return data;
+        if (Array.isArray(response)) {
+            return response;
         }
         return [];
     }
@@ -159,6 +148,9 @@ export class AudiobookshelfApi {
         }
 
         const endpoints = [
+            { path: "/api/server-settings/public", auth: false },
+            { path: "/api/public/server-settings", auth: false },
+            { path: "/api/server-settings", auth: true },
             { path: "/audiobookshelf/api/server-settings/public", auth: false },
             { path: "/audiobookshelf/api/public/server-settings", auth: false },
             { path: "/audiobookshelf/api/server-settings", auth: true },
@@ -187,7 +179,10 @@ export class AudiobookshelfApi {
 
             lastStatus = response.status;
             lastError = await response.text();
-            if (![401, 403, 404].includes(response.status)) {
+            if (response.status === 401 || response.status === 403) {
+                return null;
+            }
+            if (![404].includes(response.status)) {
                 break;
             }
         }
@@ -236,12 +231,20 @@ export class AudiobookshelfApi {
             throw new Error("No access token available");
         }
 
-        let response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+        let response = await fetch(`${this._baseUrl}/api/authorize`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${this.accessToken}`,
             },
         });
+        if (response.status === 404) {
+            response = await fetch(`${this._baseUrl}/audiobookshelf/api/authorize`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${this.accessToken}`,
+                },
+            });
+        }
 
         const shouldRefresh = response.status === 401 && this.refreshToken;
         if (shouldRefresh) {
@@ -295,20 +298,8 @@ export class AudiobookshelfApi {
 
 
     async request<P, T>(url: string, method: string, requestData: P): Promise<T> {
-        let response = await fetch(`${this._baseUrl}/audiobookshelf/api${url}`, {
-            method,
-            headers: {
-                'Authorization': `Bearer ${this. accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData),
-        });
-
-        const shouldRefresh = response.status === 401 && this.refreshToken;
-        if (shouldRefresh) {
-            await this.refreshAccessToken();
-
-            response = await fetch(`${this._baseUrl}/audiobookshelf/${url}`, {
+        const doRequest = async (prefix: string) => {
+            return await fetch(`${this._baseUrl}${prefix}${url}`, {
                 method,
                 headers: {
                     'Authorization': `Bearer ${this. accessToken}`,
@@ -316,6 +307,21 @@ export class AudiobookshelfApi {
                 },
                 body: JSON.stringify(requestData),
             });
+        };
+
+        let response = await doRequest(`/api`);
+        if (response.status === 404) {
+            response = await doRequest(`/audiobookshelf/api`);
+        }
+
+        const shouldRefresh = response.status === 401 && this.refreshToken;
+        if (shouldRefresh) {
+            await this.refreshAccessToken();
+
+            response = await doRequest(`/api`);
+            if (response.status === 404) {
+                response = await doRequest(`/audiobookshelf/api`);
+            }
         }
 
         if (!response.ok) {

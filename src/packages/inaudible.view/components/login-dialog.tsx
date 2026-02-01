@@ -55,7 +55,7 @@ export const LoginDialog = ({
     finishOpenIdLogin,
 }: Props) => {
     const [step, setStep] = useState<'server' | 'login' | 'sync'>('server');
-    const [serverConfirmed, setServerConfirmed] = useState(false);
+    const [serverConfirmed, setServerConfirmed] = useState(() => serverUrl.value.trim().length > 0);
     const dialogRef = useRef<HTMLDialogElement | null>(null);
 
     useEffect(() => {
@@ -73,6 +73,13 @@ export const LoginDialog = ({
     }, [loggedIn.value, serverConfirmed, step]);
 
     useEffect(() => {
+        if (serverUrl.value.trim().length > 0 && !serverConfirmed) {
+            setServerConfirmed(true);
+            setStep('login');
+        }
+    }, [serverUrl.value]);
+
+    useEffect(() => {
         if (step !== 'sync') {
             return;
         }
@@ -82,9 +89,7 @@ export const LoginDialog = ({
     }, [step, libraries.value.length, selectedLibraryId.value]);
 
     useEffect(() => {
-        if (step === 'login' && serverUrl.value.trim()) {
-            loadServerSettings();
-        }
+        return;
     }, [step, serverUrl.value]);
 
     useEffect(() => {
@@ -144,13 +149,13 @@ export const LoginDialog = ({
                         <label>
                             Server Url
                             <input
+                                key="server-url"
                                 name="server-url"
                                 type="text"
                                 placeholder="Server URL"
                                 value={serverUrl.value}
                                 onInput={(event) => updateServerUrl((event.target as HTMLInputElement).value)}
-                                onBlur={() => loadServerSettings()}
-                                autoComplete="url"
+                                autoComplete="off"
                             />
                         </label>
                     </fieldset>
@@ -160,6 +165,7 @@ export const LoginDialog = ({
                         <label>
                             Username
                             <input
+                                key="username"
                                 name="username"
                                 type="text"
                                 placeholder="Username"
@@ -169,7 +175,13 @@ export const LoginDialog = ({
                         </label>
                         <label>
                             Password
-                            <input name="password" type="password" placeholder="Password" autoComplete="current-password" />
+                            <input
+                                key="password"
+                                name="password"
+                                type="password"
+                                placeholder="Password"
+                                autoComplete="current-password"
+                            />
                         </label>
                         {openIdAvailable.value && (
                             <section class="stack">
@@ -228,7 +240,7 @@ export const LoginDialog = ({
                         {serverSettingsChecking.value ? "Checking..." : "Continue"}
                     </button>
                 ) : step === 'login' ? (
-                    <button class="primary" onClick={() => login()} disabled={loginLoading.value}>
+                    <button class="primary" type="submit" disabled={loginLoading.value}>
                         {loginLoading.value && <adw-spinner aria-hidden="true" style={{ marginRight: "0.5em" }} />}
                         {loginLoading.value ? "Logging in..." : "Login"}
                         </button>

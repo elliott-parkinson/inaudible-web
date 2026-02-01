@@ -6,6 +6,7 @@ import { signal } from '@preact/signals';
 import { MoreByAuthor } from '../../authors/component/more-by-author';
 import { container } from '../../../../../container';
 import type { InaudibleService } from '../../../../inaudible.service';
+import downloadIcon from "../../../icons/folder-download-symbolic.svg";
 
 
 const viewModel = {
@@ -139,7 +140,11 @@ export default () => {
                         </button>
                     ) : (
                         <button onClick={downloadBook} disabled={downloadUpdating}>
-                            {downloadUpdating ? 'Downloading...' : 'Download'}
+                            {downloadUpdating ? 'Downloading...' : 
+                                <adw-icon style="width: 1.4em; height: 1.4em;">
+                                    <img src={downloadIcon} alt="Download" />
+                                </adw-icon>
+                            }
                         </button>
                     )}
                 </div>

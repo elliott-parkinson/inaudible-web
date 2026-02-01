@@ -120,6 +120,7 @@ export class AudiobookshelfPlayer implements IAudiobookPlayer {
       }
       console.error('audiobookshelf stream error', error);
       this.#callbacks.onStatus?.('Playback failed while streaming.');
+      this.#callbacks.onError?.(error);
     }
   }
 

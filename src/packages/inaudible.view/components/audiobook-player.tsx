@@ -296,6 +296,7 @@ export const AudiobookPlayerView = ({
   const [chapterLabel, setChapterLabel] = useState('Chapter unavailable');
   const [sleepLabel, setSleepLabel] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [volume, setVolume] = useState(100);
   const [sleepValue, setSleepValue] = useState('0');
   const [volumeOpen, setVolumeOpen] = useState(false);
@@ -549,6 +550,10 @@ export const AudiobookPlayerView = ({
       onStatus: (message) => {
         setStatusMessage(message ?? '');
       },
+      onError: () => {
+        playerRef.current?.abort();
+        setIsLoading(false);
+      },
     });
   }, []);
 
@@ -568,6 +573,9 @@ export const AudiobookPlayerView = ({
 
     const onLoadedMetadata = () => {
       applyStartPosition();
+      if (!shouldAutoplay()) {
+        setIsLoading(false);
+      }
     };
     const onTime = () => {
       maybeSendProgress(false);
@@ -578,9 +586,11 @@ export const AudiobookPlayerView = ({
     };
     const onPlay = () => {
       setIsPlaying(true);
+      setIsLoading(false);
     };
     const onEnded = () => {
       setIsPlaying(false);
+      setIsLoading(false);
       maybeSendProgress(true);
       if (sleepModeRef.current === 'chapter') {
         setSleepValue('0');
@@ -626,11 +636,16 @@ export const AudiobookPlayerView = ({
 
     const load = async () => {
       setStatusMessage('Loading audio...');
-      const loadedLocal = await loadLocalAudio();
-      if (!loadedLocal) {
-        await playerRef.current?.startStream();
+      setIsLoading(true);
+      try {
+        const loadedLocal = await loadLocalAudio();
+        if (!loadedLocal) {
+          await playerRef.current?.startStream();
+        }
+        applyStartPosition();
+      } catch {
+        setIsLoading(false);
       }
-      applyStartPosition();
     };
     void load();
 
@@ -672,6 +687,12 @@ export const AudiobookPlayerView = ({
   const handlePlayClick = () => {
     const audio = playerRef.current?.audio;
     if (!audio) {
+      return;
+    }
+    if (isLoading && audio.paused) {
+      playerRef.current?.abort();
+      setIsLoading(false);
+      setStatusMessage('');
       return;
     }
     if (audio.paused) {
@@ -754,6 +775,17 @@ export const AudiobookPlayerView = ({
   const handleForwardClick = () => playerRef.current?.seekBy(10);
   const handlePrevChapterClick = () => playerRef.current?.switchChapter(-1);
   const handleNextChapterClick = () => playerRef.current?.switchChapter(1);
+  const handleCloseClick = () => {
+    playerRef.current?.abort();
+    const audio = playerRef.current?.audio;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setIsLoading(false);
+    setIsPlaying(false);
+    onClose?.();
+  };
 
   const canGoPrev = currentTrackIndex > 0;
   const canGoNext = trackList.length > 0 && currentTrackIndex < trackList.length - 1;
@@ -763,7 +795,7 @@ export const AudiobookPlayerView = ({
       <style>{css}</style>
       <div className="player" onClick={handleRootClick}>
         <div className="player-main">
-          <button className="player-close" type="button" onClick={onClose}>
+          <button className="player-close" type="button" onClick={handleCloseClick}>
             <adw-icon style="width: 1.4em; height: 1.4em;">
               <img src={closeIcon} alt="Close player" />
             </adw-icon>
@@ -777,18 +809,20 @@ export const AudiobookPlayerView = ({
             <div className="player-controls">
               <div className="player-controls-inner">
                 <div className="player-buttons">
-                  <button type="button" className="player-chapter-button" onClick={handlePrevChapterClick} disabled={!canGoPrev}>
+                  <button type="button" className="player-chapter-button" onClick={handlePrevChapterClick} disabled={!canGoPrev || isLoading}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
                       <img src={backIcon} alt="Previous Chapter" />
                     </adw-icon>
                   </button>
-                  <button type="button" onClick={handleBackClick}>
+                  <button type="button" onClick={handleBackClick} disabled={isLoading}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
                       <img src={backTenIcon} alt="Back 10s" />
                     </adw-icon>
                   </button>
                   <button type="button" className="player-play" onClick={handlePlayClick}>
-                    {isPlaying ? (
+                    {isLoading ? (
+                      <adw-spinner aria-hidden="true" />
+                    ) : isPlaying ? (
                       <adw-icon style="width: 1.4em; height: 1.4em;">
                         <img src={pauseIcon} alt="Pause" />
                       </adw-icon>
@@ -798,12 +832,12 @@ export const AudiobookPlayerView = ({
                       </adw-icon>
                     )}
                   </button>
-                  <button type="button" onClick={handleForwardClick}>
+                  <button type="button" onClick={handleForwardClick} disabled={isLoading}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
                       <img src={forwardTenIcon} alt="Forward 10s" />
                     </adw-icon>
                   </button>
-                  <button type="button" className="player-chapter-button" onClick={handleNextChapterClick} disabled={!canGoNext}>
+                  <button type="button" className="player-chapter-button" onClick={handleNextChapterClick} disabled={!canGoNext || isLoading}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
                       <img src={forwardIcon} alt="Next Chapter" />
                     </adw-icon>
@@ -811,7 +845,7 @@ export const AudiobookPlayerView = ({
                 </div>
                 <div className="player-bottom-bar">
                   <div className="player-popover">
-                    <button type="button" onClick={handleVolumeClick}>
+                    <button type="button" onClick={handleVolumeClick} disabled={isLoading}>
                       <adw-icon style="width: 1.4em; height: 1.4em;">
                         <img src={volumeIcon} alt="volume" />
                       </adw-icon>
@@ -831,7 +865,7 @@ export const AudiobookPlayerView = ({
                     </div>
                   </div>
                   <div className="player-popover">
-                    <button type="button" onClick={handleSleepClick}>
+                    <button type="button" onClick={handleSleepClick} disabled={isLoading}>
                       <adw-icon style="width: 1.4em; height: 1.4em;">
                           <img src={alarmIcon} alt="Sleep Timer" />
                         </adw-icon>
@@ -839,7 +873,7 @@ export const AudiobookPlayerView = ({
                     <div className={`player-popover-panel ${sleepOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
                       <label className="player-sleep">
                         <span>Sleep timer</span>
-                        <select value={sleepValue} onChange={handleSleepChange}>
+                      <select value={sleepValue} onChange={handleSleepChange} disabled={isLoading}>
                           {sleepOptions.map((option) => (
                             <option key={option.value} value={option.value}>{option.label}</option>
                           ))}
@@ -849,14 +883,14 @@ export const AudiobookPlayerView = ({
                     </div>
                   </div>
                   <div className="player-popover">
-                    <button type="button" onClick={handleChapterClick}>
+                    <button type="button" onClick={handleChapterClick} disabled={isLoading}>
                     <adw-icon style="width: 1.4em; height: 1.4em;">
                       <img src={chaptersIcon} alt="Chapters" />
                     </adw-icon></button>
                     <div className={`player-popover-panel ${chapterOpen ? 'open' : ''}`} onClick={(event) => event.stopPropagation()}>
                       <label className="player-chapters">
                         <span>Chapters</span>
-                        <select value={String(currentTrackIndex)} disabled={trackList.length === 0} onChange={handleChapterChange}>
+                        <select value={String(currentTrackIndex)} disabled={trackList.length === 0 || isLoading} onChange={handleChapterChange}>
                           {trackList.length === 0 && <option value="-1">Chapters unavailable</option>}
                           {trackList.map((track, index) => {
                             const title = track?.title || track?.name || track?.metadata?.title;

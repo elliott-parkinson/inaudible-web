@@ -6,6 +6,7 @@ export type AudiobookPlayerCallbacks = {
   onPlaybackUpdate: () => void;
   onProgress: (force: boolean) => void;
   onStatus?: (message: string) => void;
+  onError?: (error: unknown) => void;
 };
 
 export type PlayerConfig = { mediaItemId: string | null; apiKey: string | null; baseUrl: string | null };
