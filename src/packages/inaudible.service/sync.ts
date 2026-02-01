@@ -71,21 +71,24 @@ export class InaudibleSynchronizationService extends EventTarget {
 
         const total = totals.authors + totals.series + totals.books;
 
-        fetched.authors.forEach(async (item: LibraryAuthor, index: number) => {
+        for (let index = 0; index < fetched.authors.length; index += 1) {
+            const item = fetched.authors[index];
             const author = adapter.author(item);
             await authors.put(author);
 
             this.updateProgress(total, index);
-        });
-        
-        fetched.series.forEach(async (item: LibrarySeries, index: number) => {
+        }
+
+        for (let index = 0; index < fetched.series.length; index += 1) {
+            const item = fetched.series[index];
             const series = adapter.series(item);
             await seriesStore.put(series);
 
             this.updateProgress(total, totals.authors + index);
-        });
+        }
 
-        fetched.books.forEach(async (item: LibraryItem, index: number) => {
+        for (let index = 0; index < fetched.books.length; index += 1) {
+            const item = fetched.books[index];
             if (item.mediaType == "book") {
                 try {
                     const book = adapter.book(item);
@@ -93,7 +96,9 @@ export class InaudibleSynchronizationService extends EventTarget {
 
                     for await (let name of authorlist) {
                         const author = await authors.getByName(name);
-                        book.authors.push(author.id);
+                        if (author?.id) {
+                            book.authors.push(author.id);
+                        }
                     }
 
                     const seriesList = book.meta.seriesName?.split(', ');
@@ -120,7 +125,7 @@ export class InaudibleSynchronizationService extends EventTarget {
             else {
                 console.log(item.mediaType, item.media.metadata.title)
             }
-        });
+        }
     }
     
     private async cacheCoversAndImages() {
